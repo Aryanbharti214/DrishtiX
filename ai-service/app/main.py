@@ -1,16 +1,18 @@
 from fastapi import FastAPI
 
 from routes.images import router as image_router
+from routes.preprocessing import router as preprocessing_router
 
 
 app = FastAPI(
     title="DrishtiX AI Service",
     description="AI service for post-disaster damage assessment",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 
 app.include_router(image_router)
+app.include_router(preprocessing_router)
 
 
 @app.get("/")
@@ -26,3 +28,4 @@ def health():
     return {
         "status": "healthy",
     }
+
