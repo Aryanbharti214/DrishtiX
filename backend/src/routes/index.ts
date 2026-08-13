@@ -2,7 +2,8 @@ import { Router } from "express";
 
 import { checkDatabaseConnection } from "../config/database.js";
 import { checkAIServiceHealth } from "../integrations/ai/ai.client.js";
-
+import { disasterRouter } from "../modules/disasters/disaster.routes.js";
+import {imageryRouter,} from "../modules/imagery/imagery.routes.js";
 export const apiRouter = Router();
 
 apiRouter.get("/health", async (_req, res, next) => {
@@ -33,3 +34,14 @@ apiRouter.get("/health", async (_req, res, next) => {
     next(error);
   }
 });
+
+
+apiRouter.use(
+  "/disasters",
+  disasterRouter
+);
+
+apiRouter.use(
+  "/imagery",
+  imageryRouter
+);

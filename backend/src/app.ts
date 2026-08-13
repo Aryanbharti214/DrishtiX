@@ -27,7 +27,10 @@ app.use(
 );
 
 app.use(pinoHttp());
-
+app.use(
+  "/uploads",
+  express.static("uploads")
+);
 app.use("/api/v1", apiRouter);
 
 app.use(notFoundHandler);
