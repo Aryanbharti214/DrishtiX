@@ -168,3 +168,33 @@ export async function findImageryByDisaster(
 
   return result.rows.map(mapImagery);
 }
+export async function updateImageryStatus(
+  id: string,
+  status:
+    | "UPLOADED"
+    | "QUEUED"
+    | "PROCESSING"
+    | "ANALYZED"
+    | "FAILED"
+) {
+  const result = await db.query<ImageryRow>(
+    `
+      UPDATE imagery
+      SET
+        processing_status = $2,
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `,
+    [
+      id,
+      status,
+    ]
+  );
+
+  const imagery = result.rows[0];
+
+  return imagery
+    ? mapImagery(imagery)
+    : null;
+}
