@@ -1,5 +1,6 @@
 import { app } from "./app.js";
 import { env } from "./config/env.js";
+import { db } from "./config/database.js";
 
 const server = app.listen(env.PORT, () => {
   console.log(
@@ -7,25 +8,43 @@ const server = app.listen(env.PORT, () => {
   );
 });
 
-function gracefulShutdown(signal: string) {
-  console.log(`${signal} received. Starting graceful shutdown`);
+async function gracefulShutdown(signal: string) {
+  console.log(
+    `${signal} received. Starting graceful shutdown...`
+  );
 
-  server.close((error) => {
+  server.close(async (error) => {
     if (error) {
-      console.error("Error during HTTP server shutdown:", error);
+      console.error(
+        "Error closing HTTP server:",
+        error
+      );
+
       process.exit(1);
     }
 
-    console.log("HTTP server closed.");
+    try {
+      await db.end();
 
-    process.exit(0);
+      console.log("PostgreSQL pool closed.");
+      console.log("HTTP server closed.");
+
+      process.exit(0);
+    } catch (error) {
+      console.error(
+        "Error during graceful shutdown:",
+        error
+      );
+
+      process.exit(1);
+    }
   });
 }
 
 process.on("SIGTERM", () => {
-  gracefulShutdown("SIGTERM");
+  void gracefulShutdown("SIGTERM");
 });
 
 process.on("SIGINT", () => {
-  gracefulShutdown("SIGINT");
+  void gracefulShutdown("SIGINT");
 });

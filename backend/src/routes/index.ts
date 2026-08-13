@@ -1,12 +1,35 @@
 import { Router } from "express";
 
+import { checkDatabaseConnection } from "../config/database.js";
+import { checkAIServiceHealth } from "../integrations/ai/ai.client.js";
+
 export const apiRouter = Router();
 
-apiRouter.get("/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    service: "DrishtiX Backend",
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-  });
+apiRouter.get("/health", async (_req, res, next) => {
+  try {
+    const [database, ai] = await Promise.all([
+      checkDatabaseConnection(),
+      checkAIServiceHealth(),
+    ]);
+
+    res.status(200).json({
+      success: true,
+
+      service: "DrishtiX Backend",
+
+      status: "healthy",
+
+      services: {
+        api: "healthy",
+        database: "healthy",
+        ai: ai.status,
+      },
+
+      databaseTime: database.current_time,
+
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    next(error);
+  }
 });
