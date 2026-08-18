@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* 🌙 Tactical Dark Command Mode (Direct match to Login screen) */
+:root,
+html.dark {
+  /* Surface Layers */
+  --bg-main: #0d1527;              /* Deep Midnight Canvas */
+  --bg-card: #080d1a;              /* Abyss Slate (Matches Login Card) */
+  --bg-card-hover: #111c33;        /* Subtle Elevated Field */
+  --bg-surface-elevated: #16223b;
+  --border-color: #1e2d4a;         /* Subtle Slate Border */
+  --border-color-hover: #2e436e;
+
+  /* Typography */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Primary Brand (Deep Navy Blue) - Authority & Trust */
+  --brand-primary: #1e3a8a;
+  --brand-primary-hover: #1e40af;
+  --brand-subtle: rgba(30, 58, 138, 0.14);
+
+  /* Secondary Brand (Burnt Orange) - Emergency Response & Action */
+  --brand-secondary: #d97706;
+  --brand-secondary-hover: #b45309;
+  --brand-secondary-subtle: rgba(217, 119, 6, 0.14);
+
+  /* Accent (Cyan/Teal) - Modern Clean Highlights */
+  --brand-accent: #0891b2;
+  --brand-accent-hover: #0e7490;
+  --brand-accent-subtle: rgba(8, 145, 178, 0.14);
+
+  /* Telemetry / Official Access (Enhanced cyan) */
+  --telemetry-cyan: #38bdf8;
+  --telemetry-cyan-bg: rgba(14, 116, 144, 0.22);
+  --telemetry-cyan-border: rgba(56, 189, 248, 0.35);
+
+  /* Operational Status Tokens (Strictly for Emergency/Status states) */
+  --disaster-red: #ef4444;
+  --disaster-red-bg: rgba(239, 68, 68, 0.12);
+  --disaster-amber: #f59e0b;
+  --disaster-amber-bg: rgba(245, 158, 11, 0.12);
+  --disaster-green: #10b981;
+  --disaster-green-bg: rgba(16, 185, 129, 0.12);
+}
+
+/* ☀️ GovTech Clean Light Mode (Official Portal) */
+html.light {
+  /* Surface Layers */
+  --bg-main: #f1f5f9;              /* Slate Ghost Background */
+  --bg-card: #ffffff;              /* Pure Crisp White Card */
+  --bg-card-hover: #f8fafc;        /* Subtle Off-white */
+  --bg-surface-elevated: #e2e8f0;
+  --border-color: #cbd5e1;         /* Structural Slate Border */
+  --border-color-hover: #94a3b8;
+
+  /* Typography */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  /* Primary Brand (Deep Navy Blue) */
+  --brand-primary: #1e3a8a;
+  --brand-primary-hover: #1e40af;
+  --brand-subtle: #eff6ff;
+
+  /* Secondary Brand (Burnt Orange) - Action & Emergency */
+  --brand-secondary: #d97706;
+  --brand-secondary-hover: #b45309;
+  --brand-secondary-subtle: #fef3c7;
+
+  /* Accent (Cyan/Teal) - Clean Highlights */
+  --brand-accent: #0891b2;
+  --brand-accent-hover: #0e7490;
+  --brand-accent-subtle: #cffafe;
+
+  /* Telemetry / Official Access */
+  --telemetry-cyan: #0284c7;
+  --telemetry-cyan-bg: #e0f2fe;
+  --telemetry-cyan-border: #bae6fd;
+
+  /* Operational Status Tokens */
+  --disaster-red: #dc2626;
+  --disaster-red-bg: #fef2f2;
+  --disaster-amber: #d97706;
+  --disaster-amber-bg: #fffbeb;
+  --disaster-green: #15803d;
+  --disaster-green-bg: #f0fdf4;
+}
+
+/* Base Body Application */
+html,
+body,
+#root {
+  background-color: var(--bg-main) !important;
+  color: var(--text-primary) !important;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  min-height: 100vh;
+  font-family: inherit;
+}
+
+/* Tactical Top Hazard Accent (Refined Muted Stripe) */
+.hazard-stripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(239, 68, 68, 0.08),
+    rgba(239, 68, 68, 0.08) 8px,
+    rgba(37, 99, 235, 0.08) 8px,
+    rgba(37, 99, 235, 0.08) 16px
+  );
+}
+
+/* Base Tactical Card */
+.theme-card {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  border-radius: 0.5rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.theme-card:hover {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 4px 16px -2px rgba(37, 99, 235, 0.15);
+}
+
+/* Tactical Active Navigation Pill (Replaces the Solid Orange Box) */
+.nav-item-active {
+  background-color: var(--brand-subtle) !important;
+  color: var(--text-primary) !important;
+  border-left: 3px solid var(--brand-primary) !important;
+}
+
+/* Official Pill / Telemetry Badge (Matches Login "OFFICIAL ACCESS ONLY") */
+.badge-official {
+  background-color: var(--telemetry-cyan-bg);
+  color: var(--telemetry-cyan);
+  border: 1px solid var(--telemetry-cyan-border);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Utility Helpers */
+.theme-text-muted {
+  color: var(--text-secondary) !important;
+}
+
+.theme-border {
+  border-color: var(--border-color) !important;
+}

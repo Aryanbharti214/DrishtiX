@@ -1,0 +1,2 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api/v1";
+ async function apiRequest(path, options = {}) { const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers: { ...options.headers, }, }); let data; try { data = await response.json(); } catch { data = null; } if (!response.ok) { throw new Error(data?.error?.message || `Request failed with status ${response.status}`); } return data; } export async function getHealth() { return apiRequest("/health"); }
