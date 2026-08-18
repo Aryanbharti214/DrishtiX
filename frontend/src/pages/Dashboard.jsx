@@ -1,20 +1,26 @@
+import {
+  useDisaster
+} from "../context/DisasterContext";
 import React, { useState } from 'react';
 import StatCard from '../components/StatCard';
 import PriorityCard from '../components/PriorityCard';
 import { mockDashboardStats, mockPriorities } from '../data/mockData';
-import { 
-  Image, 
-  AlertOctagon, 
-  Navigation, 
-  CheckCircle2, 
-  ShieldAlert, 
-  ArrowUpRight, 
-  Crosshair, 
+import {
+  Image,
+  AlertOctagon,
+  Navigation,
+  CheckCircle2,
+  ShieldAlert,
+  ArrowUpRight,
+  Crosshair,
   Scan,
   Radio
 } from 'lucide-react';
 
 export default function Dashboard({ setActiveTab }) {
+  const {
+    currentDisaster
+  } = useDisaster();
   const [radarScanning, setRadarScanning] = useState(true);
 
   return (
@@ -28,7 +34,8 @@ export default function Dashboard({ setActiveTab }) {
           <div>
             <div className="flex items-center space-x-2">
               <h3 className="font-extrabold text-sm tracking-wide font-mono text-[var(--text-primary)]">
-                ODISHA FLOODS 2026
+                {currentDisaster?.name?.toUpperCase()
+                  ?? "NO DISASTER SELECTED"}
               </h3>
               <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
                 DEFCON 2 ACTIVE
@@ -40,7 +47,7 @@ export default function Dashboard({ setActiveTab }) {
           </div>
         </div>
 
-        <button 
+        <button
           onClick={() => setActiveTab('priorities')}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center space-x-2 font-mono cursor-pointer"
         >
@@ -51,32 +58,32 @@ export default function Dashboard({ setActiveTab }) {
 
       {/* Metric Cards Grid (Standardized SIH Overview Metrics) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          label="Drone Images Analyzed" 
-          value={mockDashboardStats.totalImages} 
-          icon={Image} 
-          badgeColor="bg-blue-500/10 text-blue-600 dark:text-blue-400" 
+        <StatCard
+          label="Drone Images Analyzed"
+          value={mockDashboardStats.totalImages}
+          icon={Image}
+          badgeColor="bg-blue-500/10 text-blue-600 dark:text-blue-400"
           borderColor="border-[var(--border-color)]"
         />
-        <StatCard 
-          label="Damaged Structures" 
-          value={mockDashboardStats.damagedBuildings} 
-          icon={AlertOctagon} 
-          badgeColor="bg-red-500/10 text-red-600 dark:text-red-400" 
+        <StatCard
+          label="Damaged Structures"
+          value={mockDashboardStats.damagedBuildings}
+          icon={AlertOctagon}
+          badgeColor="bg-red-500/10 text-red-600 dark:text-red-400"
           borderColor="border-[var(--border-color)]"
         />
-        <StatCard 
-          label="Blocked Supply Routes" 
-          value={mockDashboardStats.blockedRoutes} 
-          icon={Navigation} 
-          badgeColor="bg-amber-500/10 text-amber-600 dark:text-amber-400" 
+        <StatCard
+          label="Blocked Supply Routes"
+          value={mockDashboardStats.blockedRoutes}
+          icon={Navigation}
+          badgeColor="bg-amber-500/10 text-amber-600 dark:text-amber-400"
           borderColor="border-[var(--border-color)]"
         />
-        <StatCard 
-          label="Pending Verification" 
-          value={mockDashboardStats.pendingVerification} 
-          icon={CheckCircle2} 
-          badgeColor="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
+        <StatCard
+          label="Pending Verification"
+          value={mockDashboardStats.pendingVerification}
+          icon={CheckCircle2}
+          badgeColor="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           borderColor="border-[var(--border-color)]"
         />
       </div>
@@ -94,11 +101,14 @@ export default function Dashboard({ setActiveTab }) {
                 </h3>
               </div>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                Simulated real-time satellite sweep over Bhubaneswar sector
+                Operational overview for {
+                  currentDisaster?.regionName
+                  ?? "selected region"
+                }
               </p>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => setActiveTab('map')}
               className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-mono font-semibold text-xs shadow-sm transition-all flex items-center space-x-1.5 cursor-pointer"
             >
@@ -108,7 +118,7 @@ export default function Dashboard({ setActiveTab }) {
           </div>
 
           {/* Radar HUD Screen */}
-          <div 
+          <div
             onClick={() => setActiveTab('map')}
             className="w-full h-80 rounded-lg relative flex items-center justify-center overflow-hidden border border-[var(--border-color)] group cursor-pointer bg-[var(--bg-main)]"
           >
@@ -154,7 +164,7 @@ export default function Dashboard({ setActiveTab }) {
             <h3 className="font-bold text-sm text-[var(--text-primary)] uppercase tracking-wider font-mono">
               Priority Queue
             </h3>
-            <button 
+            <button
               onClick={() => setActiveTab('priorities')}
               className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
             >
@@ -164,10 +174,10 @@ export default function Dashboard({ setActiveTab }) {
 
           <div className="space-y-3">
             {mockPriorities.slice(0, 2).map((item) => (
-              <PriorityCard 
-                key={item.id} 
-                priority={item} 
-                onViewEvidence={() => setActiveTab('evidence')} 
+              <PriorityCard
+                key={item.id}
+                priority={item}
+                onViewEvidence={() => setActiveTab('evidence')}
               />
             ))}
           </div>

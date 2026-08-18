@@ -1,170 +1,1037 @@
-import React, { useState } from 'react';
-import { Sparkles, Scan, Eye, Layers, Upload, ArrowLeftRight, CheckCircle2 } from 'lucide-react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  CalendarDays,
+  Camera,
+  CheckCircle2,
+  Image as ImageIcon,
+  MapPin,
+  RefreshCw,
+  Satellite,
+  TriangleAlert,
+  Upload,
+} from "lucide-react";
+
+import {
+  getAssetUrl,
+  getDisasterImagery,
+  uploadImagery,
+} from "../services/api";
+
+import {
+  useDisaster,
+} from "../context/DisasterContext";
+
+
+const MAX_FILE_SIZE =
+  20 * 1024 * 1024;
+
+const ALLOWED_TYPES =
+  new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ]);
+
 
 export default function Imagery() {
-  const [sliderPosition, setSliderPosition] = useState(50);
-  const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
+  const {
+    currentDisaster,
+  } = useDisaster();
+
+  const fileInputRef =
+    useRef(null);
+
+  const [selectedFile,
+    setSelectedFile] =
+    useState(null);
+
+  const [previewUrl,
+    setPreviewUrl] =
+    useState("");
+
+  const [sourceType,
+    setSourceType] =
+    useState("DRONE");
+
+  const [latitude,
+    setLatitude] =
+    useState("");
+
+  const [longitude,
+    setLongitude] =
+    useState("");
+
+  const [capturedAt,
+    setCapturedAt] =
+    useState("");
+
+  const [imagery,
+    setImagery] =
+    useState([]);
+
+  const [loading,
+    setLoading] =
+    useState(false);
+
+  const [uploading,
+    setUploading] =
+    useState(false);
+
+  const [error,
+    setError] =
+    useState("");
+
+  const [successMessage,
+    setSuccessMessage] =
+    useState("");
+
+
+  /*
+   * Generate a local preview for
+   * the selected file.
+   */
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl("");
+      return;
+    }
+
+    const objectUrl =
+      URL.createObjectURL(
+        selectedFile
+      );
+
+    setPreviewUrl(
+      objectUrl
+    );
+
+    return () => {
+      URL.revokeObjectURL(
+        objectUrl
+      );
+    };
+  }, [selectedFile]);
+
+
+  /*
+   * Load imagery every time
+   * selected disaster changes.
+   */
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadImagery() {
+      if (
+        !currentDisaster?.id
+      ) {
+        setImagery([]);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        const response =
+          await getDisasterImagery(
+            currentDisaster.id
+          );
+
+        if (!ignore) {
+          setImagery(
+            response?.data
+              ?.imagery ?? []
+          );
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load imagery"
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadImagery();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    currentDisaster?.id,
+  ]);
+
+
+  function handleFileChange(
+    event
+  ) {
+    setError("");
+    setSuccessMessage("");
+
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+
+    if (
+      !ALLOWED_TYPES.has(
+        file.type
+      )
+    ) {
+      setSelectedFile(null);
+
+      event.target.value = "";
+
+      setError(
+        "Only JPEG, PNG and WebP images are allowed."
+      );
+
+      return;
+    }
+
+    if (
+      file.size >
+      MAX_FILE_SIZE
+    ) {
+      setSelectedFile(null);
+
+      event.target.value = "";
+
+      setError(
+        "Image size must not exceed 20MB."
+      );
+
+      return;
+    }
+
+    setSelectedFile(file);
+  }
+
+
+  async function handleUpload(
+    event
+  ) {
+    event.preventDefault();
+
+    if (
+      !currentDisaster?.id
+    ) {
+      setError(
+        "Create or select a disaster event before uploading imagery."
+      );
+
+      return;
+    }
+
+    if (!selectedFile) {
+      setError(
+        "Please select an image."
+      );
+
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError("");
+      setSuccessMessage("");
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        "image",
+        selectedFile
+      );
+
+      formData.append(
+        "disasterId",
+        currentDisaster.id
+      );
+
+      formData.append(
+        "sourceType",
+        sourceType
+      );
+
+
+      /*
+       * Only append optional
+       * values if provided.
+       */
+      if (
+        latitude.trim() !== ""
+      ) {
+        formData.append(
+          "latitude",
+          latitude.trim()
+        );
+      }
+
+      if (
+        longitude.trim() !== ""
+      ) {
+        formData.append(
+          "longitude",
+          longitude.trim()
+        );
+      }
+
+      if (
+        capturedAt !== ""
+      ) {
+        formData.append(
+          "capturedAt",
+          capturedAt
+        );
+      }
+
+
+      const response =
+        await uploadImagery(
+          formData
+        );
+
+      const createdImagery =
+        response?.data?.imagery;
+
+      if (!createdImagery) {
+        throw new Error(
+          "Backend did not return uploaded imagery."
+        );
+      }
+
+
+      /*
+       * Add new imagery immediately
+       * without another GET request.
+       */
+      setImagery(
+        (previous) => [
+          createdImagery,
+          ...previous,
+        ]
+      );
+
+
+      setSuccessMessage(
+        `${createdImagery.originalFilename} uploaded successfully.`
+      );
+
+
+      /*
+       * Reset upload form.
+       */
+      setSelectedFile(null);
+      setSourceType("DRONE");
+      setLatitude("");
+      setLongitude("");
+      setCapturedAt("");
+
+      if (
+        fileInputRef.current
+      ) {
+        fileInputRef.current.value =
+          "";
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Imagery upload failed"
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+
+  async function refreshImagery() {
+    if (
+      !currentDisaster?.id
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response =
+        await getDisasterImagery(
+          currentDisaster.id
+        );
+
+      setImagery(
+        response?.data?.imagery ??
+          []
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to refresh imagery"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
+  function formatBytes(
+    bytes
+  ) {
+    if (
+      bytes === null ||
+      bytes === undefined
+    ) {
+      return "Unknown size";
+    }
+
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+
+    const kb =
+      bytes / 1024;
+
+    if (kb < 1024) {
+      return `${kb.toFixed(
+        1
+      )} KB`;
+    }
+
+    const mb =
+      kb / 1024;
+
+    return `${mb.toFixed(
+      1
+    )} MB`;
+  }
+
+
+  function formatDate(
+    value
+  ) {
+    if (!value) {
+      return "Not specified";
+    }
+
+    return new Intl
+      .DateTimeFormat(
+        "en-IN",
+        {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }
+      )
+      .format(
+        new Date(value)
+      );
+  }
+
+
+  function getStatusClasses(
+    status
+  ) {
+    switch (status) {
+      case "ANALYZED":
+        return (
+          "bg-emerald-500/10 " +
+          "text-emerald-500 " +
+          "border-emerald-500/30"
+        );
+
+      case "PROCESSING":
+      case "QUEUED":
+        return (
+          "bg-amber-500/10 " +
+          "text-amber-500 " +
+          "border-amber-500/30"
+        );
+
+      case "FAILED":
+        return (
+          "bg-red-500/10 " +
+          "text-red-500 " +
+          "border-red-500/30"
+        );
+
+      default:
+        return (
+          "bg-sky-500/10 " +
+          "text-sky-500 " +
+          "border-sky-500/30"
+        );
+    }
+  }
+
 
   return (
     <div className="space-y-6">
-      {/* Top Section Header */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
+
+      {/* PAGE HEADER */}
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-            <h2 className="text-xl font-extrabold tracking-wide font-mono">DRONE & SATELLITE INTELLIGENCE</h2>
+          <div className="flex items-center gap-2">
+
+            <Satellite className="w-5 h-5 text-sky-500" />
+
+            <h2 className="text-xl font-extrabold tracking-wide text-[var(--text-primary)]">
+              Drone & Satellite Imagery
+            </h2>
+
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Interactive dual-layer imagery analysis & automated structural AI damage detection
+
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Upload operational imagery
+            associated with the selected
+            disaster event.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => setShowBoundingBoxes(!showBoundingBoxes)}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold border transition-all flex items-center space-x-2 ${
-              showBoundingBoxes 
-                ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-lg' 
-                : 'theme-card text-slate-400'
+
+        <button
+          type="button"
+          onClick={refreshImagery}
+          disabled={
+            loading ||
+            !currentDisaster
+          }
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
+        >
+
+          <RefreshCw
+            className={`w-4 h-4 ${
+              loading
+                ? "animate-spin"
+                : ""
             }`}
-          >
-            <Scan className="w-4 h-4" />
-            <span>AI BOUNDING BOXES: {showBoundingBoxes ? 'ON' : 'OFF'}</span>
-          </button>
-        </div>
+          />
+
+          Refresh
+
+        </button>
+
       </div>
 
-      {/* Main Interactive Comparison Viewport */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Interactive Before/After Image Slider */}
-        <div className="lg:col-span-2 theme-card rounded-2xl p-5 space-y-4 shadow-2xl relative">
-          <div className="flex justify-between items-center text-xs font-mono">
-            <span className="text-slate-400 flex items-center gap-1">
-              <ArrowLeftRight className="w-4 h-4 text-sky-400" /> DRAG SLIDER TO COMPARE CHANGE
-            </span>
-            <span className="text-sky-400 font-bold">GRID #402-A (Bhubaneswar Floodplain)</span>
-          </div>
 
-          {/* Interactive Image Container */}
-          <div className="relative h-96 w-full rounded-xl overflow-hidden select-none border border-slate-700/50 group">
-            {/* After Image (Background layer) */}
-            <img 
-              src="https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=1200&q=80" 
-              alt="After Disaster Flood Inundation"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <span className="absolute top-4 right-4 bg-red-600/90 text-white font-mono font-bold text-[10px] px-2.5 py-1 rounded-md shadow-md z-10">
-              POST-DISASTER (12 AUG 2026)
-            </span>
+      {/* CURRENT DISASTER */}
 
-            {/* Before Image (Clipped Overlay) */}
-            <div 
-              className="absolute inset-0 overflow-hidden" 
-              style={{ width: `${sliderPosition}%` }}
-            >
-              <img 
-                src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80" 
-                alt="Before Disaster Pre-event"
-                className="absolute inset-0 w-full h-full object-cover max-w-none"
-                style={{ width: '100%', height: '100%' }}
-              />
-              <span className="absolute top-4 left-4 bg-emerald-600/90 text-white font-mono font-bold text-[10px] px-2.5 py-1 rounded-md shadow-md z-10">
-                PRE-DISASTER ARCHIVE
-              </span>
-            </div>
+      <div className="theme-card rounded-xl border border-[var(--border-color)] p-4">
 
-            {/* AI Bounding Box Overlays */}
-            {showBoundingBoxes && (
-              <div className="absolute inset-0 pointer-events-none z-20">
-                {/* Damage Box 1 */}
-                <div className="absolute top-[35%] left-[60%] w-28 h-20 border-2 border-red-500 bg-red-500/20 rounded-md animate-pulse">
-                  <span className="absolute -top-5 left-0 bg-red-600 text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded">
-                    STRUCTURAL COLLAPSE (98%)
-                  </span>
-                </div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+          Upload Target
+        </p>
 
-                {/* Damage Box 2 */}
-                <div className="absolute top-[60%] left-[25%] w-36 h-24 border-2 border-amber-500 bg-amber-500/20 rounded-md">
-                  <span className="absolute -top-5 left-0 bg-amber-600 text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded">
-                    ROADWAY BLOCKED (87%)
-                  </span>
-                </div>
-              </div>
-            )}
+        {currentDisaster ? (
+          <div className="mt-2">
 
-            {/* Range Input Control */}
-            <input 
-              type="range" 
-              min="0" 
-              max="100" 
-              value={sliderPosition} 
-              onChange={(e) => setSliderPosition(e.target.value)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30"
-            />
-
-            {/* Visual Divider Line */}
-            <div 
-              className="absolute top-0 bottom-0 w-1 bg-sky-400 pointer-events-none z-20 shadow-[0_0_15px_#00f0ff]"
-              style={{ left: `${sliderPosition}%` }}
-            >
-              <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 bg-sky-400 text-slate-900 rounded-full flex items-center justify-center shadow-lg font-bold">
-                <ArrowLeftRight className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center text-xs font-mono text-slate-400">
-            <span>AI Model: <b>ResNet-50 FloodNet v4</b></span>
-            <span>Inference Speed: <b>42ms</b></span>
-          </div>
-        </div>
-
-        {/* Direct Imagery Upload & Live AI Analysis Panel */}
-        <div className="theme-card rounded-2xl p-5 space-y-4 shadow-xl flex flex-col justify-between">
-          <div>
-            <h3 className="font-bold text-sm uppercase font-mono tracking-wider mb-1">Ingest New Drone Footage</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Upload geotagged JPG/PNG imagery or drone orthomosaics for automated neural analysis.
+            <p className="font-bold text-[var(--text-primary)]">
+              {
+                currentDisaster.name
+              }
             </p>
 
-            {/* Drop Zone */}
-            <div className="border-2 border-dashed border-slate-700/80 hover:border-sky-400 rounded-xl p-6 text-center space-y-3 cursor-pointer transition-all bg-sky-500/5 group">
-              <div className="w-12 h-12 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                <Upload className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-bold">Click to upload or drag & drop</p>
-                <p className="text-[10px] text-slate-500 font-mono mt-0.5">GeoTIFF, JPG, PNG up to 50MB</p>
-              </div>
-            </div>
-          </div>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              {
+                currentDisaster.regionName ||
+                "Region not specified"
+              }
+            </p>
 
-          {/* AI Analysis Summary */}
-          <div className="space-y-3 pt-4 border-t border-slate-700/50 font-mono text-xs">
-            <p className="text-slate-400 font-bold uppercase text-[10px]">CURRENT INGESTION TELEMETRY</p>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Detections Flagged:</span>
-              <span className="text-red-400 font-bold">14 Hazards</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Average Confidence:</span>
-              <span className="text-emerald-400 font-bold">94.8%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Priority Level:</span>
-              <span className="text-amber-400 font-bold">HIGH (URGENT)</span>
-            </div>
-
-            <button 
-              onClick={() => alert("Simulation: AI analysis completed! 3 new structural collapses appended to Priority Dispatch Queue.")}
-              className="w-full py-3 bg-sky-500 hover:bg-sky-600 text-slate-900 font-bold font-mono text-xs rounded-xl shadow-lg transition-all mt-2 flex items-center justify-center space-x-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>RUN NEURAL DETECTION</span>
-            </button>
           </div>
-        </div>
+        ) : (
+          <p className="mt-2 text-sm text-orange-500">
+            No disaster selected.
+            Select one from Disaster
+            Events first.
+          </p>
+        )}
+
       </div>
+
+
+      {/* MESSAGES */}
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
+
+          <TriangleAlert className="w-4 h-4 mt-0.5 flex-shrink-0" />
+
+          <span>{error}</span>
+
+        </div>
+      )}
+
+
+      {successMessage && (
+        <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-500">
+
+          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
+
+          <span>
+            {successMessage}
+          </span>
+
+        </div>
+      )}
+
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+        {/* UPLOAD PANEL */}
+
+        <form
+          onSubmit={handleUpload}
+          className="xl:col-span-1 theme-card rounded-xl border border-[var(--border-color)] p-5 space-y-5"
+        >
+
+          <div>
+            <h3 className="font-bold text-[var(--text-primary)]">
+              Upload Imagery
+            </h3>
+
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              JPEG, PNG or WebP,
+              maximum 20MB.
+            </p>
+          </div>
+
+
+          {/* FILE INPUT */}
+
+          <div>
+
+            <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2">
+              Image *
+            </label>
+
+            <label className="block cursor-pointer">
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={
+                  handleFileChange
+                }
+                className="hidden"
+              />
+
+              <div className="border-2 border-dashed border-[var(--border-color)] hover:border-sky-500 rounded-xl p-6 text-center transition-colors">
+
+                <Upload className="w-8 h-8 mx-auto text-sky-500" />
+
+                <p className="text-sm font-semibold text-[var(--text-primary)] mt-3">
+                  Select image
+                </p>
+
+                <p className="text-xs text-[var(--text-muted)] mt-1">
+                  JPEG, PNG, WebP
+                  ≤ 20MB
+                </p>
+
+              </div>
+
+            </label>
+
+          </div>
+
+
+          {/* PREVIEW */}
+
+          {previewUrl && (
+            <div className="space-y-2">
+
+              <img
+                src={previewUrl}
+                alt="Selected upload preview"
+                className="w-full h-48 object-cover rounded-lg border border-[var(--border-color)]"
+              />
+
+              <p className="text-xs text-[var(--text-secondary)] break-all">
+                {selectedFile?.name}
+              </p>
+
+              <p className="text-[11px] text-[var(--text-muted)]">
+                {
+                  formatBytes(
+                    selectedFile?.size
+                  )
+                }
+              </p>
+
+            </div>
+          )}
+
+
+          {/* SOURCE */}
+
+          <div>
+
+            <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2">
+              Source Type *
+            </label>
+
+            <select
+              value={sourceType}
+              onChange={(event) =>
+                setSourceType(
+                  event.target.value
+                )
+              }
+              className="w-full px-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500"
+            >
+
+              <option value="DRONE">
+                Drone
+              </option>
+
+              <option value="SATELLITE">
+                Satellite
+              </option>
+
+              <option value="STREET">
+                Street / Ground
+              </option>
+
+            </select>
+
+          </div>
+
+
+          {/* LATITUDE */}
+
+          <div>
+
+            <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2">
+              Latitude
+            </label>
+
+            <div className="relative">
+
+              <MapPin className="absolute left-3 top-3 w-4 h-4 text-[var(--text-muted)]" />
+
+              <input
+                type="number"
+                step="any"
+                min="-90"
+                max="90"
+                value={latitude}
+                onChange={(event) =>
+                  setLatitude(
+                    event.target.value
+                  )
+                }
+                placeholder="20.2961"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500"
+              />
+
+            </div>
+
+          </div>
+
+
+          {/* LONGITUDE */}
+
+          <div>
+
+            <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2">
+              Longitude
+            </label>
+
+            <div className="relative">
+
+              <MapPin className="absolute left-3 top-3 w-4 h-4 text-[var(--text-muted)]" />
+
+              <input
+                type="number"
+                step="any"
+                min="-180"
+                max="180"
+                value={longitude}
+                onChange={(event) =>
+                  setLongitude(
+                    event.target.value
+                  )
+                }
+                placeholder="85.8245"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500"
+              />
+
+            </div>
+
+          </div>
+
+
+          {/* CAPTURED AT */}
+
+          <div>
+
+            <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2">
+              Captured At
+            </label>
+
+            <div className="relative">
+
+              <CalendarDays className="absolute left-3 top-3 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
+
+              <input
+                type="datetime-local"
+                value={capturedAt}
+                onChange={(event) =>
+                  setCapturedAt(
+                    event.target.value
+                  )
+                }
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500"
+              />
+
+            </div>
+
+          </div>
+
+
+          <button
+            type="submit"
+            disabled={
+              uploading ||
+              !currentDisaster ||
+              !selectedFile
+            }
+            className="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+
+            <Upload className="w-4 h-4" />
+
+            {uploading
+              ? "Uploading..."
+              : "Upload Imagery"}
+
+          </button>
+
+        </form>
+
+
+        {/* IMAGERY LIBRARY */}
+
+        <div className="xl:col-span-2 theme-card rounded-xl border border-[var(--border-color)] p-5">
+
+          <div className="flex items-center justify-between gap-4 mb-5">
+
+            <div>
+
+              <h3 className="font-bold text-[var(--text-primary)]">
+                Imagery Library
+              </h3>
+
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                {
+                  imagery.length
+                } uploaded image
+                {
+                  imagery.length === 1
+                    ? ""
+                    : "s"
+                }
+              </p>
+
+            </div>
+
+            <ImageIcon className="w-5 h-5 text-sky-500" />
+
+          </div>
+
+
+          {loading ? (
+
+            <div className="py-20 text-center text-sm text-[var(--text-secondary)]">
+              Loading imagery...
+            </div>
+
+          ) : !currentDisaster ? (
+
+            <div className="py-20 text-center">
+
+              <TriangleAlert className="w-8 h-8 mx-auto text-orange-500 mb-3" />
+
+              <p className="text-sm text-[var(--text-secondary)]">
+                Select a disaster
+                event first.
+              </p>
+
+            </div>
+
+          ) : imagery.length === 0 ? (
+
+            <div className="py-20 text-center">
+
+              <Camera className="w-9 h-9 mx-auto text-[var(--text-muted)] mb-3" />
+
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
+                No imagery uploaded
+              </p>
+
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Upload the first
+                operational image for
+                this disaster.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+              {imagery.map(
+                (item) => (
+
+                  <article
+                    key={item.id}
+                    className="rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)]"
+                  >
+
+                    <img
+                      src={
+                        getAssetUrl(
+                          item.imageUrl
+                        )
+                      }
+                      alt={
+                        item.originalFilename
+                      }
+                      className="w-full h-52 object-cover"
+                    />
+
+
+                    <div className="p-4 space-y-3">
+
+                      <div className="flex items-start justify-between gap-3">
+
+                        <div className="min-w-0">
+
+                          <p className="font-bold text-sm text-[var(--text-primary)] truncate">
+                            {
+                              item.originalFilename
+                            }
+                          </p>
+
+                          <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                            {
+                              item.sourceType
+                            }
+                            {" • "}
+                            {
+                              formatBytes(
+                                item.sizeBytes
+                              )
+                            }
+                          </p>
+
+                        </div>
+
+                        <span
+                          className={`text-[9px] font-bold px-2 py-1 rounded border ${getStatusClasses(
+                            item.processingStatus
+                          )}`}
+                        >
+                          {
+                            item.processingStatus
+                          }
+                        </span>
+
+                      </div>
+
+
+                      <div className="space-y-1 text-xs text-[var(--text-secondary)]">
+
+                        <p>
+                          Uploaded:{" "}
+                          {
+                            formatDate(
+                              item.createdAt
+                            )
+                          }
+                        </p>
+
+                        <p>
+                          Captured:{" "}
+                          {
+                            formatDate(
+                              item.capturedAt
+                            )
+                          }
+                        </p>
+
+
+                        {item.location
+                          ?.latitude !==
+                          null &&
+                          item.location
+                            ?.latitude !==
+                            undefined &&
+                          item.location
+                            ?.longitude !==
+                            null &&
+                          item.location
+                            ?.longitude !==
+                            undefined && (
+
+                            <p className="flex items-center gap-1">
+
+                              <MapPin className="w-3 h-3" />
+
+                              {
+                                item.location.latitude
+                              }
+                              ,
+                              {" "}
+                              {
+                                item.location.longitude
+                              }
+
+                            </p>
+
+                          )}
+
+                      </div>
+
+                    </div>
+
+                  </article>
+
+                )
+              )}
+
+            </div>
+
+          )}
+
+        </div>
+
+      </div>
+
     </div>
   );
 }

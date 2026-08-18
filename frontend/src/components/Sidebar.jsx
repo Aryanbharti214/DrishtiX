@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Map as MapIcon, 
-  Image as ImageIcon, 
-  AlertTriangle, 
-  CheckCircle, 
-  Flame, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Map as MapIcon,
+  Image as ImageIcon,
+  AlertTriangle,
+  CheckCircle,
+  Flame,
+  FileText,
   ShieldCheck,
   Radio,
   Activity,
@@ -15,19 +15,73 @@ import {
 import { useSettings } from '../context/SettingsContext';
 import { getTranslation } from '../services/translations';
 
-export default function Sidebar({ activeTab, setActiveTab }) {
+export default function Sidebar({ activeTab, setActiveTab, currentDisaster }) {
   const { language } = useSettings();
   const t = (keyPath) => getTranslation(language, keyPath);
 
   const menuItems = [
-    { id: 'dashboard', translationKey: 'nav.dashboard', icon: LayoutDashboard },
-    { id: 'map', translationKey: 'nav.map', icon: MapIcon },
-    { id: 'imagery', translationKey: 'nav.imagery', icon: ImageIcon },
-    { id: 'findings', translationKey: 'nav.findings', icon: AlertTriangle },
-    { id: 'verify', translationKey: 'nav.verify', icon: CheckCircle },
-    { id: 'priorities', translationKey: 'nav.priorities', icon: Flame },
-    { id: 'evidence', translationKey: 'nav.evidence', icon: FileText },
-    { id: 'settings', translationKey: 'nav.settings', icon: SettingsIcon },
+    {
+      id: "dashboard",
+      translationKey:
+        "nav.dashboard",
+      icon: LayoutDashboard,
+    },
+
+    {
+      id: "disasters",
+      translationKey:
+        "nav.disasters",
+      icon: Activity,
+    },
+
+    {
+      id: "map",
+      translationKey:
+        "nav.map",
+      icon: MapIcon,
+    },
+
+    {
+      id: "imagery",
+      translationKey:
+        "nav.imagery",
+      icon: ImageIcon,
+    },
+
+    {
+      id: "findings",
+      translationKey:
+        "nav.findings",
+      icon: AlertTriangle,
+    },
+
+    {
+      id: "verify",
+      translationKey:
+        "nav.verify",
+      icon: CheckCircle,
+    },
+
+    {
+      id: "priorities",
+      translationKey:
+        "nav.priorities",
+      icon: Flame,
+    },
+
+    {
+      id: "evidence",
+      translationKey:
+        "nav.evidence",
+      icon: FileText,
+    },
+
+    {
+      id: "settings",
+      translationKey:
+        "nav.settings",
+      icon: SettingsIcon,
+    },
   ];
 
   return (
@@ -54,19 +108,78 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         </div>
 
         {/* Live Incident Status Card (GovTech Amber / Red State) */}
-        <div className="mx-3.5 mt-3.5 p-3 rounded-lg bg-[var(--bg-card-hover)] border border-[var(--border-color)] flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span>
-            <span className="text-[11px] font-semibold text-[var(--text-primary)] tracking-wide">
-              ODISHA FLOOD 2026
-            </span>
-          </div>
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20">
-            DEFCON 2
-          </span>
+        <div className="mx-3.5 mt-3.5 p-3 rounded-lg bg-[var(--bg-card-hover)] border border-[var(--border-color)]">
+
+          {currentDisaster ? (
+            <div className="space-y-2">
+
+              <div className="flex items-center space-x-2">
+
+                <span className="relative flex h-2 w-2">
+
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+
+                </span>
+
+                <span className="text-[11px] font-semibold text-[var(--text-primary)] tracking-wide truncate">
+
+                  {currentDisaster.name}
+
+                </span>
+
+              </div>
+
+              <div className="flex justify-between items-center gap-2">
+
+                <span className="text-[10px] text-[var(--text-muted)] truncate">
+
+                  {currentDisaster.regionName
+                    || "Region unspecified"}
+
+                </span>
+
+                <span
+                  className={`text-[9px] font-bold px-2 py-0.5 rounded ${currentDisaster.status ===
+                      "ACTIVE"
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : currentDisaster.status ===
+                        "MONITORING"
+                        ? "bg-amber-500/10 text-amber-500"
+                        : "bg-slate-500/10 text-slate-500"
+                    }`}
+                >
+
+                  {currentDisaster.status}
+
+                </span>
+
+              </div>
+
+            </div>
+          ) : (
+
+            <button
+              type="button"
+              onClick={() =>
+                setActiveTab(
+                  "disasters"
+                )
+              }
+              className="w-full text-left"
+            >
+              <p className="text-[11px] font-semibold text-orange-500">
+                No disaster selected
+              </p>
+
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                Create or select an event
+              </p>
+            </button>
+
+          )}
+
         </div>
 
         {/* Navigation Menu */}
@@ -82,16 +195,14 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-left ${
-                  isActive
-                    ? 'bg-orange-600/15 text-orange-600 dark:text-orange-500 border-l-4 border-orange-600 dark:border-orange-500 shadow-sm font-bold'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
-                }`}
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-left ${isActive
+                  ? 'bg-orange-600/15 text-orange-600 dark:text-orange-500 border-l-4 border-orange-600 dark:border-orange-500 shadow-sm font-bold'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
+                  }`}
               >
                 <Icon
-                  className={`w-4 h-4 transition-colors ${
-                    isActive ? 'text-orange-600 dark:text-orange-500' : 'text-[var(--text-muted)]'
-                  }`}
+                  className={`w-4 h-4 transition-colors ${isActive ? 'text-orange-600 dark:text-orange-500' : 'text-[var(--text-muted)]'
+                    }`}
                 />
                 <span>{t(item.translationKey)}</span>
               </button>

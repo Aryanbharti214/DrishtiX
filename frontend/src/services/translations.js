@@ -1,6 +1,8 @@
 // Translation dictionary for DRISHTIX
 export const translations = {
   en: {
+    disasters: 'Disaster Events',
+    
     // Navigation
     nav: {
       dashboard: 'Command Dashboard',
@@ -133,7 +135,9 @@ export const translations = {
     },
   },
   od: {
+    disasters: 'ଦୁର୍ଯ୍ୟୋଗ ଘଟଣା',
     // Navigation
+    disasters: 'आपदा घटनाएँ',
     nav: {
       dashboard: 'ନିର୍ଦ୍ଦେଶ ତାଲିକାଭୁକ୍ତ',
       map: 'ଦୁର୍ଯ୍ୟୋଗ ମାନଚିତ୍ର ଏବଂ ହଟସ୍ପଟ',

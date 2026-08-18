@@ -1,42 +1,86 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-const SettingsContext = createContext();
+const SettingsContext = createContext(null);
 
-export function SettingsProvider({ children }) {
-  const [language, setLanguage] = useState(() => {
-    return localStorage.getItem('drishtix-language') || 'en';
+export function SettingsProvider({
+  children,
+}) {
+  const [language, setLanguage] =
+    useState(() => {
+      return (
+        localStorage.getItem(
+          "drishtix-language"
+        ) || "en"
+      );
+    });
+
+  const [
+    isDarkMode,
+    setIsDarkMode,
+  ] = useState(() => {
+    const saved =
+      localStorage.getItem(
+        "drishtix-dark-mode"
+      );
+
+    if (saved === null) {
+      return true;
+    }
+
+    return saved === "true";
   });
 
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const [isDarkMode, setIsDarkMode] = useState(() => { const saved = localStorage.getItem('drishtix-dark-mode'); return saved === null ? true : saved === 'true'; });
+  const [
+    userProfile,
+    setUserProfile,
+  ] = useState({
+    officerId: "NDRF-2026",
+    role: "Senior Officer",
+    agency:
+      "National Disaster Response Force",
   });
 
-  const [userProfile, setUserProfile] = useState({
-    officerId: 'NDRF-2026',
-    role: 'Senior Officer',
-    agency: 'National Disaster Response Force',
-  });
-
-  // Persist language preference
   useEffect(() => {
-    localStorage.setItem('drishtix-language', language);
+    localStorage.setItem(
+      "drishtix-language",
+      language
+    );
   }, [language]);
 
-  // Persist dark mode preference
   useEffect(() => {
-    localStorage.setItem('drishtix-dark-mode', isDarkMode);
+    localStorage.setItem(
+      "drishtix-dark-mode",
+      String(isDarkMode)
+    );
   }, [isDarkMode]);
+
+  const value = useMemo(
+    () => ({
+      language,
+      setLanguage,
+
+      isDarkMode,
+      setIsDarkMode,
+
+      userProfile,
+      setUserProfile,
+    }),
+    [
+      language,
+      isDarkMode,
+      userProfile,
+    ]
+  );
 
   return (
     <SettingsContext.Provider
-      value={{
-        language,
-        setLanguage,
-        isDarkMode,
-        setIsDarkMode,
-        userProfile,
-        setUserProfile,
-      }}
+      value={value}
     >
       {children}
     </SettingsContext.Provider>
@@ -44,9 +88,14 @@ export function SettingsProvider({ children }) {
 }
 
 export function useSettings() {
-  const context = useContext(SettingsContext);
+  const context =
+    useContext(SettingsContext);
+
   if (!context) {
-    throw new Error('useSettings must be used within SettingsProvider');
+    throw new Error(
+      "useSettings must be used inside SettingsProvider"
+    );
   }
+
   return context;
 }
