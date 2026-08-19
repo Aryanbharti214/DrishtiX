@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Runtime/generated data
+backend/uploads/
+ai-service/uploads/
+ai-service/processed/
+ai-service/temp/
+ai-service/debug_output/
+ai-service/runs/
+ai-service/drishtix_runs/
+
+# Model weights and datasets
+*.pt
+*.pth
+*.onnx
+*.ckpt
+ai-service/datasets/
+
+# Logs
+*.log
