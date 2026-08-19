@@ -41,22 +41,13 @@ async function apiRequest(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| System
-|--------------------------------------------------------------------------
-*/
+
 
 export async function getHealth() {
   return apiRequest("/health");
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Disasters
-|--------------------------------------------------------------------------
-*/
 
 export async function getDisasters() {
   return apiRequest(
@@ -94,12 +85,6 @@ export async function getDisaster(
   );
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Imagery
-|--------------------------------------------------------------------------
-*/
 
 export async function analyzeImagery(
   imageryId
@@ -144,12 +129,6 @@ export async function getImageryById(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Static Assets
-|--------------------------------------------------------------------------
-*/
-
 export function getAssetUrl(
   path
 ) {
@@ -177,11 +156,7 @@ export function getAssetUrl(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Findings
-|--------------------------------------------------------------------------
-*/
+
 
 export async function getDisasterFindings(
   disasterId
@@ -259,5 +234,15 @@ export async function getFindingRelations(
 ) {
   return apiRequest(
     `/findings/${findingId}/relations`
+  );
+}
+
+
+
+export async function getEvidenceClusters(
+  disasterId
+) {
+  return apiRequest(
+    `/findings/disaster/${disasterId}/clusters`
   );
 }

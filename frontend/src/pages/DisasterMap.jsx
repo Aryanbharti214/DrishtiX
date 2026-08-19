@@ -8,6 +8,7 @@ import React, {
 import {
   CircleMarker,
   MapContainer,
+  Polyline,
   Popup,
   TileLayer,
   useMap,
@@ -34,10 +35,13 @@ import {
 import {
   createManualFinding,
   getDisasterFindings,
+  getEvidenceClusters,
   getFindingRelations,
 } from "../services/api";
 import EvidenceIntelligencePanel
   from "../components/EvidenceIntelligencePanel";
+import EvidenceClusterPanel
+  from "../components/EvidenceClusterPanel";
 import {
   useDisaster,
 } from "../context/DisasterContext";
@@ -220,12 +224,6 @@ export default function DisasterMap() {
   } = useDisaster();
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Data
-  |--------------------------------------------------------------------------
-  */
-
   const [
     findings,
     setFindings,
@@ -277,6 +275,40 @@ export default function DisasterMap() {
     relationsError,
     setRelationsError,
   ] = useState("");
+  /*
+|--------------------------------------------------------------------------
+| Disaster Evidence Clusters
+|--------------------------------------------------------------------------
+*/
+
+const [
+  evidenceClusters,
+  setEvidenceClusters,
+] = useState([]);
+
+
+const [
+  clustersLoading,
+  setClustersLoading,
+] = useState(false);
+
+
+const [
+  clustersError,
+  setClustersError,
+] = useState("");
+
+
+const [
+  showClusterLayer,
+  setShowClusterLayer,
+] = useState(true);
+
+
+const [
+  selectedCluster,
+  setSelectedCluster,
+] = useState(null);
   /*
   |--------------------------------------------------------------------------
   | Filters
@@ -370,10 +402,83 @@ export default function DisasterMap() {
       ]
     );
 
+const loadEvidenceClusters =
+  useCallback(
+    async () => {
 
+      if (
+        !currentDisaster?.id
+      ) {
+
+        setEvidenceClusters(
+          []
+        );
+
+        return;
+      }
+
+
+      try {
+
+        setClustersLoading(
+          true
+        );
+
+
+        setClustersError(
+          ""
+        );
+
+
+        const response =
+          await getEvidenceClusters(
+            currentDisaster.id
+          );
+
+
+        setEvidenceClusters(
+          response?.data
+            ?.clusters ??
+          []
+        );
+
+      } catch (err) {
+
+        setEvidenceClusters(
+          []
+        );
+
+
+        setClustersError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load evidence clusters"
+        );
+
+      } finally {
+
+        setClustersLoading(
+          false
+        );
+
+      }
+    },
+    [
+      currentDisaster?.id,
+    ]
+  );
   useEffect(() => {
     void loadFindings();
   }, [loadFindings]);
+
+
+  useEffect(() => {
+    void loadEvidenceClusters();
+  }, [
+    loadEvidenceClusters,
+  ]);
+
+
   useEffect(() => {
 
     setSelectedFinding(
@@ -388,9 +493,22 @@ export default function DisasterMap() {
       ""
     );
 
+    setSelectedCluster(
+      null
+    );
+
+    setEvidenceClusters(
+      []
+    );
+
+    setClustersError(
+      ""
+    );
+
   }, [
     currentDisaster?.id,
   ]);
+
 
   
 
@@ -456,6 +574,39 @@ export default function DisasterMap() {
       ]
     );
  
+  const visibleEvidenceClusters =
+    useMemo(
+      () =>
+        evidenceClusters.filter(
+          (cluster) => {
+
+            if (
+              cluster
+                .activeEvidenceCount ===
+              0
+            ) {
+              return false;
+            }
+
+
+            if (
+              cluster.memberCount === 1 &&
+              cluster.state ===
+                "ISOLATED"
+            ) {
+              return false;
+            }
+
+
+            return true;
+          }
+        ),
+      [
+        evidenceClusters,
+      ]
+    );
+
+
   const summary =
     useMemo(
       () => ({
@@ -661,6 +812,8 @@ export default function DisasterMap() {
       );
 
 
+await loadEvidenceClusters();
+
       setSuccessMessage(
         "Responder finding added to the live intelligence map."
       );
@@ -697,6 +850,10 @@ export default function DisasterMap() {
 
 
         try {
+
+          setSelectedCluster(
+            null
+          );
 
           setSelectedFinding(
             finding
@@ -831,6 +988,69 @@ export default function DisasterMap() {
   }
 
 
+  function getClusterColor(
+    state
+  ) {
+    switch (state) {
+
+      case "DISPUTED":
+        return "#ef4444";
+
+
+      case "CORROBORATED":
+        return "#22c55e";
+
+
+      case "RELATED":
+        return "#38bdf8";
+
+
+      default:
+        return "#94a3b8";
+    }
+  }
+
+
+  function getClusterRadius(
+    cluster
+  ) {
+    return Math.min(
+      34,
+      18 +
+        (
+          cluster
+            .activeEvidenceCount *
+          2
+        )
+    );
+  }
+
+
+  function getRelationColor(
+    relationType
+  ) {
+    switch (
+      relationType
+    ) {
+
+      case "DISPUTED":
+        return "#ef4444";
+
+
+      case "CORROBORATES":
+        return "#22c55e";
+
+
+      case "POSSIBLE_DUPLICATE":
+        return "#f59e0b";
+
+
+      default:
+        return "#38bdf8";
+    }
+  }
+
+
   return (
     <div className="space-y-5">
 
@@ -874,9 +1094,10 @@ export default function DisasterMap() {
 
           <button
             type="button"
-            onClick={
-              loadFindings
-            }
+            onClick={() => {
+              void loadFindings();
+              void loadEvidenceClusters();
+            }}
             disabled={
               loading ||
               !currentDisaster
@@ -961,6 +1182,23 @@ export default function DisasterMap() {
         </div>
 
       )}
+
+      {clustersError && (
+
+        <div className="flex gap-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-500 text-sm">
+
+          <TriangleAlert className="w-4 h-4 mt-0.5" />
+
+          <span>
+            {
+              clustersError
+            }
+          </span>
+
+        </div>
+
+      )}
+
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
 
@@ -1098,6 +1336,47 @@ export default function DisasterMap() {
         </select>
 
 
+        <button
+          type="button"
+          onClick={
+            () =>
+              setShowClusterLayer(
+                (current) =>
+                  !current
+              )
+          }
+          className={`
+            px-3
+            py-2
+            rounded-lg
+            border
+            text-xs
+            font-bold
+            transition-colors
+            ${
+              showClusterLayer
+                ? "border-orange-500 bg-orange-500/10 text-orange-500"
+                : "border-[var(--border-color)] text-[var(--text-secondary)]"
+            }
+          `}
+        >
+          Evidence Clusters:{" "}
+          {
+            showClusterLayer
+              ? "ON"
+              : "OFF"
+          }
+        </button>
+
+
+        <span className="text-xs text-[var(--text-secondary)]">
+          {
+            visibleEvidenceClusters.length
+          }{" "}
+          active clusters
+        </span>
+
+
         <div className="ml-auto text-xs text-[var(--text-muted)]">
 
           Showing{" "}
@@ -1217,6 +1496,300 @@ export default function DisasterMap() {
               handleLocationSelected
             }
           />
+
+
+          {
+            selectedCluster &&
+            selectedCluster.relations.map(
+              (relation) => {
+
+                const findingA =
+                  selectedCluster
+                    .members
+                    .find(
+                      (member) =>
+                        member.id ===
+                        relation.findingAId
+                    );
+
+
+                const findingB =
+                  selectedCluster
+                    .members
+                    .find(
+                      (member) =>
+                        member.id ===
+                        relation.findingBId
+                    );
+
+
+                if (
+                  !findingA ||
+                  !findingB ||
+                  findingA.latitude === null ||
+                  findingA.longitude === null ||
+                  findingB.latitude === null ||
+                  findingB.longitude === null
+                ) {
+                  return null;
+                }
+
+
+                return (
+                  <Polyline
+                    key={
+                      relation.id
+                    }
+                    positions={[
+                      [
+                        Number(
+                          findingA.latitude
+                        ),
+                        Number(
+                          findingA.longitude
+                        ),
+                      ],
+                      [
+                        Number(
+                          findingB.latitude
+                        ),
+                        Number(
+                          findingB.longitude
+                        ),
+                      ],
+                    ]}
+                    pathOptions={{
+                      color:
+                        getRelationColor(
+                          relation
+                            .relationType
+                        ),
+
+                      weight:
+                        3,
+
+                      opacity:
+                        0.7,
+
+                      dashArray:
+                        relation
+                          .relationType ===
+                        "RELATED"
+                          ? "8 8"
+                          : undefined,
+                    }}
+                  />
+                );
+              }
+            )
+          }
+
+
+          {
+            showClusterLayer &&
+            visibleEvidenceClusters.map(
+              (cluster) => {
+
+                const latitude =
+                  cluster.displayCenter
+                    ?.latitude;
+
+
+                const longitude =
+                  cluster.displayCenter
+                    ?.longitude;
+
+
+                if (
+                  latitude === null ||
+                  latitude === undefined ||
+                  longitude === null ||
+                  longitude === undefined
+                ) {
+                  return null;
+                }
+
+
+                const color =
+                  getClusterColor(
+                    cluster.state
+                  );
+
+
+                const selected =
+                  selectedCluster
+                    ?.clusterId ===
+                  cluster.clusterId;
+
+
+                return (
+                  <CircleMarker
+                    key={
+                      cluster.clusterId
+                    }
+                    center={[
+                      Number(
+                        latitude
+                      ),
+                      Number(
+                        longitude
+                      ),
+                    ]}
+                    radius={
+                      getClusterRadius(
+                        cluster
+                      )
+                    }
+                    pathOptions={{
+                      color,
+
+                      fillColor:
+                        color,
+
+                      fillOpacity:
+                        selected
+                          ? 0.25
+                          : 0.12,
+
+                      opacity:
+                        0.9,
+
+                      weight:
+                        selected
+                          ? 5
+                          : 3,
+
+                      dashArray:
+                        cluster.state ===
+                          "RELATED"
+                          ? "8 6"
+                          : undefined,
+                    }}
+                  >
+
+                    <Popup
+                      minWidth={
+                        270
+                      }
+                    >
+
+                      <div className="space-y-3 text-slate-900">
+
+                        <div className="flex items-center justify-between gap-3">
+
+                          <p className="font-bold text-sm">
+                            Evidence Cluster
+                          </p>
+
+
+                          <span
+                            className="text-[10px] font-bold"
+                            style={{
+                              color,
+                            }}
+                          >
+                            {
+                              cluster.state
+                            }
+                          </span>
+
+                        </div>
+
+
+                        <div className="grid grid-cols-2 gap-2">
+
+                          <div className="rounded bg-slate-100 p-2">
+
+                            <p className="text-[9px] uppercase text-slate-500">
+                              Active Evidence
+                            </p>
+
+
+                            <p className="font-bold">
+                              {
+                                cluster
+                                  .activeEvidenceCount
+                              }
+                            </p>
+
+                          </div>
+
+
+                          <div className="rounded bg-slate-100 p-2">
+
+                            <p className="text-[9px] uppercase text-slate-500">
+                              Verified
+                            </p>
+
+
+                            <p className="font-bold">
+                              {
+                                cluster
+                                  .verifiedCount
+                              }
+                            </p>
+
+                          </div>
+
+                        </div>
+
+
+                        <p className="text-xs text-slate-600">
+                          Highest severity:{" "}
+                          <strong>
+                            {
+                              cluster
+                                .highestSeverity ??
+                              "NONE"
+                            }
+                          </strong>
+                        </p>
+
+
+                        <p className="text-[10px] text-slate-500">
+                          This marker represents connected evidence, not a fused or automatically verified incident.
+                        </p>
+
+                      </div>
+
+
+                      <button
+                        type="button"
+                        onClick={
+                          (event) => {
+
+                            event
+                              .stopPropagation();
+
+
+                            setSelectedFinding(
+                              null
+                            );
+
+
+                            setFindingRelations(
+                              []
+                            );
+
+
+                            setSelectedCluster(
+                              cluster
+                            );
+
+                          }
+                        }
+                        className="mt-3 w-full px-3 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold"
+                      >
+                        Inspect Evidence Cluster
+                      </button>
+
+                    </Popup>
+
+                  </CircleMarker>
+                );
+              }
+            )
+          }
 
 
           {filteredFindings.map(
@@ -1473,6 +2046,19 @@ export default function DisasterMap() {
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
 
             Syncing intelligence...
+
+          </div>
+
+        )}
+
+
+        {clustersLoading && (
+
+          <div className="absolute top-14 right-4 z-[1000] rounded-lg bg-slate-950/90 border border-slate-700 px-3 py-2 text-white text-xs flex items-center gap-2">
+
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+
+            Building evidence clusters...
 
           </div>
 
@@ -1746,6 +2332,59 @@ export default function DisasterMap() {
 
                 setRelationsError(
                   ""
+                );
+
+              }
+            }
+          />
+        )
+      }
+
+
+      {
+        selectedCluster &&
+        (
+          <EvidenceClusterPanel
+            cluster={
+              selectedCluster
+            }
+
+            onClose={
+              () =>
+                setSelectedCluster(
+                  null
+                )
+            }
+
+            onOpenFinding={
+              (member) => {
+
+                setSelectedCluster(
+                  null
+                );
+
+
+                const fullFinding =
+                  findings.find(
+                    (finding) =>
+                      finding.id ===
+                      member.id
+                  ) ??
+                  {
+                    ...member,
+
+                    location: {
+                      latitude:
+                        member.latitude,
+
+                      longitude:
+                        member.longitude,
+                    },
+                  };
+
+
+                void loadFindingRelations(
+                  fullFinding
                 );
 
               }
