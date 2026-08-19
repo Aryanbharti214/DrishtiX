@@ -1,5 +1,3 @@
-import { Rotate3DIcon } from "lucide-react";
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   "http://localhost:4000/api/v1";
@@ -102,7 +100,6 @@ export async function getDisaster(
 | Imagery
 |--------------------------------------------------------------------------
 */
-
 
 export async function analyzeImagery(
   imageryId
@@ -210,18 +207,16 @@ export async function createManualFinding(
   return apiRequest(
     "/findings/manual",
     {
-      method:
-        "POST",
+      method: "POST",
 
       headers: {
         "Content-Type":
           "application/json",
       },
 
-      body:
-        JSON.stringify(
-          payload
-        ),
+      body: JSON.stringify(
+        payload
+      ),
     }
   );
 }
@@ -234,18 +229,16 @@ export async function verifyFinding(
   return apiRequest(
     `/findings/${findingId}/verify`,
     {
-      method:
-        "POST",
+      method: "POST",
 
       headers: {
         "Content-Type":
           "application/json",
       },
 
-      body:
-        JSON.stringify(
-          payload
-        ),
+      body: JSON.stringify(
+        payload
+      ),
     }
   );
 }
