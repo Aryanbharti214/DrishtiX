@@ -1,3 +1,5 @@
+import { Rotate3DIcon } from "lucide-react";
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   "http://localhost:4000/api/v1";
@@ -101,6 +103,19 @@ export async function getDisaster(
 |--------------------------------------------------------------------------
 */
 
+
+export async function analyzeImagery(
+  imageryId
+) {
+  return apiRequest(
+    `/imagery/${imageryId}/analyze`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+
 export async function uploadImagery(
   formData
 ) {
@@ -162,4 +177,51 @@ export function getAssetUrl(
       : `/${path}`;
 
   return `${BACKEND_ORIGIN}${normalizedPath}`;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Findings
+|--------------------------------------------------------------------------
+*/
+
+export async function getDisasterFindings(
+  disasterId
+) {
+  return apiRequest(
+    `/findings/disaster/${disasterId}`
+  );
+}
+
+
+export async function getFindingById(
+  findingId
+) {
+  return apiRequest(
+    `/findings/${findingId}`
+  );
+}
+
+
+export async function createManualFinding(
+  payload
+) {
+  return apiRequest(
+    "/findings/manual",
+    {
+      method:
+        "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
 }

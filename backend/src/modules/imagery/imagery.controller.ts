@@ -3,6 +3,9 @@ import type {
   Response,
   NextFunction,
 } from "express";
+import {
+  analyzeImageryService,
+} from "./imagery-analysis.service.js";
 
 import {
   createImageryMetadataSchema,
@@ -157,5 +160,55 @@ export async function getDisasterImageryController(
     });
   } catch (error) {
     next(error);
+  }
+}
+export async function analyzeImageryController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+
+    const parsed =
+      imageryIdSchema.safeParse(
+        req.params.id
+      );
+
+
+    if (!parsed.success) {
+
+      res.status(400).json({
+        success: false,
+
+        error: {
+          code:
+            "INVALID_IMAGERY_ID",
+
+          message:
+            "Imagery ID must be a valid UUID",
+        },
+      });
+
+      return;
+    }
+
+
+    const result =
+      await analyzeImageryService(
+        parsed.data
+      );
+
+
+    res.status(200).json({
+      success: true,
+
+      data:
+        result,
+    });
+
+  } catch (error) {
+
+    next(error);
+
   }
 }

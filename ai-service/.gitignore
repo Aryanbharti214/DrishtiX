@@ -1,14 +1,32 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
 
+# Environment
 .env
 
+# Model weights
 *.pt
 *.pth
 *.onnx
 *.ckpt
 
-*.log
-
+# Runtime files
 uploads/
+processed/
+temp/
+debug_output/
+
+# Test/generated images
+test_images/
+
+# Datasets
+datasets/
+
+# Training outputs
+runs/
+drishtix_runs/
+
+# Logs
+*.log

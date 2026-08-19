@@ -3,10 +3,13 @@ import type {
   Response,
   NextFunction,
 } from "express";
-
+import {
+  createManualFindingSchema,
+} from "./finding.types.js";
 import { z } from "zod";
 
 import {
+  createManualFindingService,
   getFindingByIdService,
   getFindingsByDisasterService,
   getFindingsByImageryService,
@@ -142,5 +145,63 @@ export async function getImageryFindingsController(
     });
   } catch (error) {
     next(error);
+  }
+}
+export async function createManualFindingController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+
+    const parsed =
+      createManualFindingSchema
+        .safeParse(
+          req.body
+        );
+
+
+    if (!parsed.success) {
+
+      res.status(400).json({
+        success: false,
+
+        error: {
+          code:
+            "VALIDATION_ERROR",
+
+          message:
+            "Invalid finding data",
+
+          details:
+            parsed.error
+              .flatten()
+              .fieldErrors,
+        },
+      });
+
+
+      return;
+    }
+
+
+    const finding =
+      await createManualFindingService(
+        parsed.data
+      );
+
+
+    res.status(201).json({
+      success: true,
+
+      data: {
+        finding,
+      },
+    });
+
+  } catch (error) {
+
+    next(error);
+
   }
 }

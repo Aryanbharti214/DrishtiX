@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -12,11 +13,13 @@ import {
   MapPin,
   RefreshCw,
   Satellite,
+  ScanSearch,
   TriangleAlert,
   Upload,
 } from "lucide-react";
 
 import {
+  analyzeImagery,
   getAssetUrl,
   getDisasterImagery,
   uploadImagery,
@@ -43,58 +46,104 @@ export default function Imagery() {
     currentDisaster,
   } = useDisaster();
 
+
+  /*
+  |--------------------------------------------------------------------------
+  | Refs
+  |--------------------------------------------------------------------------
+  */
+
   const fileInputRef =
     useRef(null);
 
-  const [selectedFile,
-    setSelectedFile] =
-    useState(null);
 
-  const [previewUrl,
-    setPreviewUrl] =
-    useState("");
+  /*
+  |--------------------------------------------------------------------------
+  | Upload state
+  |--------------------------------------------------------------------------
+  */
 
-  const [sourceType,
-    setSourceType] =
-    useState("DRONE");
+  const [
+    selectedFile,
+    setSelectedFile,
+  ] = useState(null);
 
-  const [latitude,
-    setLatitude] =
-    useState("");
+  const [
+    previewUrl,
+    setPreviewUrl,
+  ] = useState("");
 
-  const [longitude,
-    setLongitude] =
-    useState("");
+  const [
+    sourceType,
+    setSourceType,
+  ] = useState("DRONE");
 
-  const [capturedAt,
-    setCapturedAt] =
-    useState("");
+  const [
+    latitude,
+    setLatitude,
+  ] = useState("");
 
-  const [imagery,
-    setImagery] =
-    useState([]);
+  const [
+    longitude,
+    setLongitude,
+  ] = useState("");
 
-  const [loading,
-    setLoading] =
-    useState(false);
-
-  const [uploading,
-    setUploading] =
-    useState(false);
-
-  const [error,
-    setError] =
-    useState("");
-
-  const [successMessage,
-    setSuccessMessage] =
-    useState("");
+  const [
+    capturedAt,
+    setCapturedAt,
+  ] = useState("");
 
 
   /*
-   * Generate a local preview for
-   * the selected file.
-   */
+  |--------------------------------------------------------------------------
+  | Imagery state
+  |--------------------------------------------------------------------------
+  */
+
+  const [
+    imagery,
+    setImagery,
+  ] = useState([]);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  const [
+    uploading,
+    setUploading,
+  ] = useState(false);
+
+  const [
+    analyzingId,
+    setAnalyzingId,
+  ] = useState(null);
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | UI state
+  |--------------------------------------------------------------------------
+  */
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState("");
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Selected image preview
+  |--------------------------------------------------------------------------
+  */
+
   useEffect(() => {
     if (!selectedFile) {
       setPreviewUrl("");
@@ -119,59 +168,60 @@ export default function Imagery() {
 
 
   /*
-   * Load imagery every time
-   * selected disaster changes.
-   */
-  useEffect(() => {
-    let ignore = false;
+  |--------------------------------------------------------------------------
+  | Load imagery
+  |--------------------------------------------------------------------------
+  */
 
-    async function loadImagery() {
-      if (
-        !currentDisaster?.id
-      ) {
-        setImagery([]);
-        return;
-      }
+  const loadImagery =
+    useCallback(
+      async () => {
+        if (
+          !currentDisaster?.id
+        ) {
+          setImagery([]);
+          return;
+        }
 
-      try {
-        setLoading(true);
-        setError("");
+        try {
+          setLoading(true);
+          setError("");
 
-        const response =
-          await getDisasterImagery(
-            currentDisaster.id
-          );
+          const response =
+            await getDisasterImagery(
+              currentDisaster.id
+            );
 
-        if (!ignore) {
           setImagery(
             response?.data
               ?.imagery ?? []
           );
-        }
-      } catch (err) {
-        if (!ignore) {
+        } catch (err) {
           setError(
             err instanceof Error
               ? err.message
               : "Failed to load imagery"
           );
-        }
-      } finally {
-        if (!ignore) {
+        } finally {
           setLoading(false);
         }
-      }
-    }
+      },
+      [
+        currentDisaster?.id,
+      ]
+    );
 
-    loadImagery();
 
-    return () => {
-      ignore = true;
-    };
-  }, [
-    currentDisaster?.id,
-  ]);
+  useEffect(() => {
+    void loadImagery();
+  }, [loadImagery]);
 
+
+  /*
+  |--------------------------------------------------------------------------
+  | File selection
+  |--------------------------------------------------------------------------
+  */
 
   function handleFileChange(
     event
@@ -186,6 +236,7 @@ export default function Imagery() {
       setSelectedFile(null);
       return;
     }
+
 
     if (
       !ALLOWED_TYPES.has(
@@ -203,6 +254,7 @@ export default function Imagery() {
       return;
     }
 
+
     if (
       file.size >
       MAX_FILE_SIZE
@@ -218,14 +270,24 @@ export default function Imagery() {
       return;
     }
 
-    setSelectedFile(file);
+
+    setSelectedFile(
+      file
+    );
   }
 
+
+  /*
+  |--------------------------------------------------------------------------
+  | Upload imagery
+  |--------------------------------------------------------------------------
+  */
 
   async function handleUpload(
     event
   ) {
     event.preventDefault();
+
 
     if (
       !currentDisaster?.id
@@ -237,6 +299,7 @@ export default function Imagery() {
       return;
     }
 
+
     if (!selectedFile) {
       setError(
         "Please select an image."
@@ -245,23 +308,29 @@ export default function Imagery() {
       return;
     }
 
+
     try {
       setUploading(true);
+
       setError("");
       setSuccessMessage("");
 
+
       const formData =
         new FormData();
+
 
       formData.append(
         "image",
         selectedFile
       );
 
+
       formData.append(
         "disasterId",
         currentDisaster.id
       );
+
 
       formData.append(
         "sourceType",
@@ -270,9 +339,9 @@ export default function Imagery() {
 
 
       /*
-       * Only append optional
-       * values if provided.
+       * Optional metadata
        */
+
       if (
         latitude.trim() !== ""
       ) {
@@ -282,6 +351,7 @@ export default function Imagery() {
         );
       }
 
+
       if (
         longitude.trim() !== ""
       ) {
@@ -290,6 +360,7 @@ export default function Imagery() {
           longitude.trim()
         );
       }
+
 
       if (
         capturedAt !== ""
@@ -306,8 +377,10 @@ export default function Imagery() {
           formData
         );
 
+
       const createdImagery =
         response?.data?.imagery;
+
 
       if (!createdImagery) {
         throw new Error(
@@ -317,9 +390,10 @@ export default function Imagery() {
 
 
       /*
-       * Add new imagery immediately
-       * without another GET request.
+       * Add uploaded image immediately
+       * instead of performing another GET.
        */
+
       setImagery(
         (previous) => [
           createdImagery,
@@ -329,18 +403,20 @@ export default function Imagery() {
 
 
       setSuccessMessage(
-        `${createdImagery.originalFilename} uploaded successfully.`
+        `${createdImagery.originalFilename} uploaded successfully. You can now run AI analysis.`
       );
 
 
       /*
-       * Reset upload form.
+       * Reset upload form
        */
+
       setSelectedFile(null);
       setSourceType("DRONE");
       setLatitude("");
       setLongitude("");
       setCapturedAt("");
+
 
       if (
         fileInputRef.current
@@ -348,49 +424,247 @@ export default function Imagery() {
         fileInputRef.current.value =
           "";
       }
+
     } catch (err) {
+
       setError(
         err instanceof Error
           ? err.message
           : "Imagery upload failed"
       );
+
     } finally {
+
       setUploading(false);
+
     }
   }
 
 
-  async function refreshImagery() {
+  /*
+  |--------------------------------------------------------------------------
+  | Run AI analysis
+  |--------------------------------------------------------------------------
+  */
+
+  async function handleAnalyze(
+    item
+  ) {
+    /*
+     * Analysis should only be manually
+     * started from UPLOADED or FAILED.
+     */
+
     if (
-      !currentDisaster?.id
+      item.processingStatus !==
+        "UPLOADED" &&
+      item.processingStatus !==
+        "FAILED"
     ) {
       return;
     }
 
-    try {
-      setLoading(true);
-      setError("");
 
-      const response =
-        await getDisasterImagery(
-          currentDisaster.id
-        );
+    /*
+     * Prevent multiple analysis requests
+     * from this UI at the same time.
+     */
+
+    if (analyzingId) {
+      return;
+    }
+
+
+    const previousStatus =
+      item.processingStatus;
+
+
+    try {
+      setAnalyzingId(
+        item.id
+      );
+
+      setError("");
+      setSuccessMessage("");
+
+
+      /*
+       * Optimistic UI:
+       *
+       * Backend itself transitions:
+       *
+       * UPLOADED
+       *    ↓
+       * QUEUED
+       *    ↓
+       * PROCESSING
+       *
+       * Since this synchronous request is
+       * quick from the UI perspective,
+       * show PROCESSING immediately.
+       */
 
       setImagery(
-        response?.data?.imagery ??
-          []
+        (previous) =>
+          previous.map(
+            (current) =>
+              current.id ===
+              item.id
+                ? {
+                    ...current,
+
+                    processingStatus:
+                      "PROCESSING",
+                  }
+                : current
+          )
       );
+
+
+      const response =
+        await analyzeImagery(
+          item.id
+        );
+
+
+      const result =
+        response?.data;
+
+
+      const updatedImagery =
+        result?.imagery;
+
+
+      if (!updatedImagery) {
+        throw new Error(
+          "Backend did not return analyzed imagery."
+        );
+      }
+
+
+      /*
+       * Backend returns updated imagery
+       * with ANALYZED status.
+       */
+
+      setImagery(
+        (previous) =>
+          previous.map(
+            (current) =>
+              current.id ===
+              updatedImagery.id
+                ? updatedImagery
+                : current
+          )
+      );
+
+
+      const detectionCount =
+        result?.detectionCount ??
+        0;
+
+
+      const findingsCreated =
+        result?.findingsCreated ??
+        0;
+
+
+      setSuccessMessage(
+        `AI analysis complete: ${detectionCount} raw detection${
+          detectionCount === 1
+            ? ""
+            : "s"
+        }, ${findingsCreated} disaster finding${
+          findingsCreated === 1
+            ? ""
+            : "s"
+        }.`
+      );
+
     } catch (err) {
+
+      /*
+       * Try retrieving the authoritative
+       * backend status.
+       *
+       * For example, if FastAPI failed,
+       * backend should already have marked
+       * the imagery FAILED.
+       */
+
+      try {
+        if (
+          currentDisaster?.id
+        ) {
+          const response =
+            await getDisasterImagery(
+              currentDisaster.id
+            );
+
+          setImagery(
+            response?.data
+              ?.imagery ?? []
+          );
+        }
+      } catch {
+        /*
+         * If even the refresh fails,
+         * restore the status the card
+         * had before this request.
+         */
+
+        setImagery(
+          (previous) =>
+            previous.map(
+              (current) =>
+                current.id ===
+                item.id
+                  ? {
+                      ...current,
+
+                      processingStatus:
+                        previousStatus,
+                    }
+                  : current
+            )
+        );
+      }
+
+
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to refresh imagery"
+          : "AI analysis failed"
       );
+
     } finally {
-      setLoading(false);
+
+      setAnalyzingId(
+        null
+      );
+
     }
   }
 
+
+  /*
+  |--------------------------------------------------------------------------
+  | Manual refresh
+  |--------------------------------------------------------------------------
+  */
+
+  async function refreshImagery() {
+    setSuccessMessage("");
+
+    await loadImagery();
+  }
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Formatting helpers
+  |--------------------------------------------------------------------------
+  */
 
   function formatBytes(
     bytes
@@ -402,12 +676,15 @@ export default function Imagery() {
       return "Unknown size";
     }
 
+
     if (bytes < 1024) {
       return `${bytes} B`;
     }
 
+
     const kb =
       bytes / 1024;
+
 
     if (kb < 1024) {
       return `${kb.toFixed(
@@ -415,8 +692,10 @@ export default function Imagery() {
       )} KB`;
     }
 
+
     const mb =
       kb / 1024;
+
 
     return `${mb.toFixed(
       1
@@ -431,6 +710,7 @@ export default function Imagery() {
       return "Not specified";
     }
 
+
     return new Intl
       .DateTimeFormat(
         "en-IN",
@@ -438,6 +718,7 @@ export default function Imagery() {
           day: "2-digit",
           month: "short",
           year: "numeric",
+
           hour: "2-digit",
           minute: "2-digit",
         }
@@ -452,6 +733,7 @@ export default function Imagery() {
     status
   ) {
     switch (status) {
+
       case "ANALYZED":
         return (
           "bg-emerald-500/10 " +
@@ -459,13 +741,22 @@ export default function Imagery() {
           "border-emerald-500/30"
         );
 
+
       case "PROCESSING":
+        return (
+          "bg-violet-500/10 " +
+          "text-violet-500 " +
+          "border-violet-500/30"
+        );
+
+
       case "QUEUED":
         return (
           "bg-amber-500/10 " +
           "text-amber-500 " +
           "border-amber-500/30"
         );
+
 
       case "FAILED":
         return (
@@ -474,6 +765,8 @@ export default function Imagery() {
           "border-red-500/30"
         );
 
+
+      case "UPLOADED":
       default:
         return (
           "bg-sky-500/10 " +
@@ -484,14 +777,22 @@ export default function Imagery() {
   }
 
 
+  /*
+  |--------------------------------------------------------------------------
+  | Render
+  |--------------------------------------------------------------------------
+  */
+
   return (
     <div className="space-y-6">
+
 
       {/* PAGE HEADER */}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
 
         <div>
+
           <div className="flex items-center gap-2">
 
             <Satellite className="w-5 h-5 text-sky-500" />
@@ -502,22 +803,25 @@ export default function Imagery() {
 
           </div>
 
+
           <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Upload operational imagery
-            associated with the selected
-            disaster event.
+            Upload operational imagery and run AI-assisted analysis
+            for the selected disaster event.
           </p>
+
         </div>
 
 
         <button
           type="button"
-          onClick={refreshImagery}
+          onClick={
+            refreshImagery
+          }
           disabled={
             loading ||
             !currentDisaster
           }
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
 
           <RefreshCw
@@ -543,7 +847,9 @@ export default function Imagery() {
           Upload Target
         </p>
 
+
         {currentDisaster ? (
+
           <div className="mt-2">
 
             <p className="font-bold text-[var(--text-primary)]">
@@ -560,31 +866,40 @@ export default function Imagery() {
             </p>
 
           </div>
+
         ) : (
+
           <p className="mt-2 text-sm text-orange-500">
             No disaster selected.
-            Select one from Disaster
-            Events first.
+            Select one from Disaster Events first.
           </p>
+
         )}
 
       </div>
 
 
-      {/* MESSAGES */}
+      {/* ERROR */}
 
       {error && (
+
         <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
 
           <TriangleAlert className="w-4 h-4 mt-0.5 flex-shrink-0" />
 
-          <span>{error}</span>
+          <span>
+            {error}
+          </span>
 
         </div>
+
       )}
 
 
+      {/* SUCCESS */}
+
       {successMessage && (
+
         <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-500">
 
           <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -594,27 +909,34 @@ export default function Imagery() {
           </span>
 
         </div>
+
       )}
 
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-        {/* UPLOAD PANEL */}
+
+        {/* ============================================================= */}
+        {/* UPLOAD PANEL                                                  */}
+        {/* ============================================================= */}
 
         <form
-          onSubmit={handleUpload}
+          onSubmit={
+            handleUpload
+          }
           className="xl:col-span-1 theme-card rounded-xl border border-[var(--border-color)] p-5 space-y-5"
         >
 
           <div>
+
             <h3 className="font-bold text-[var(--text-primary)]">
               Upload Imagery
             </h3>
 
             <p className="text-xs text-[var(--text-secondary)] mt-1">
-              JPEG, PNG or WebP,
-              maximum 20MB.
+              JPEG, PNG or WebP, maximum 20MB.
             </p>
+
           </div>
 
 
@@ -626,10 +948,13 @@ export default function Imagery() {
               Image *
             </label>
 
+
             <label className="block cursor-pointer">
 
               <input
-                ref={fileInputRef}
+                ref={
+                  fileInputRef
+                }
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={
@@ -638,17 +963,19 @@ export default function Imagery() {
                 className="hidden"
               />
 
+
               <div className="border-2 border-dashed border-[var(--border-color)] hover:border-sky-500 rounded-xl p-6 text-center transition-colors">
 
                 <Upload className="w-8 h-8 mx-auto text-sky-500" />
+
 
                 <p className="text-sm font-semibold text-[var(--text-primary)] mt-3">
                   Select image
                 </p>
 
+
                 <p className="text-xs text-[var(--text-muted)] mt-1">
-                  JPEG, PNG, WebP
-                  ≤ 20MB
+                  JPEG, PNG, WebP ≤ 20MB
                 </p>
 
               </div>
@@ -661,17 +988,24 @@ export default function Imagery() {
           {/* PREVIEW */}
 
           {previewUrl && (
+
             <div className="space-y-2">
 
               <img
-                src={previewUrl}
+                src={
+                  previewUrl
+                }
                 alt="Selected upload preview"
                 className="w-full h-48 object-cover rounded-lg border border-[var(--border-color)]"
               />
 
+
               <p className="text-xs text-[var(--text-secondary)] break-all">
-                {selectedFile?.name}
+                {
+                  selectedFile?.name
+                }
               </p>
+
 
               <p className="text-[11px] text-[var(--text-muted)]">
                 {
@@ -682,10 +1016,11 @@ export default function Imagery() {
               </p>
 
             </div>
+
           )}
 
 
-          {/* SOURCE */}
+          {/* SOURCE TYPE */}
 
           <div>
 
@@ -693,12 +1028,16 @@ export default function Imagery() {
               Source Type *
             </label>
 
+
             <select
-              value={sourceType}
-              onChange={(event) =>
-                setSourceType(
-                  event.target.value
-                )
+              value={
+                sourceType
+              }
+              onChange={
+                (event) =>
+                  setSourceType(
+                    event.target.value
+                  )
               }
               className="w-full px-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500"
             >
@@ -728,20 +1067,25 @@ export default function Imagery() {
               Latitude
             </label>
 
+
             <div className="relative">
 
               <MapPin className="absolute left-3 top-3 w-4 h-4 text-[var(--text-muted)]" />
+
 
               <input
                 type="number"
                 step="any"
                 min="-90"
                 max="90"
-                value={latitude}
-                onChange={(event) =>
-                  setLatitude(
-                    event.target.value
-                  )
+                value={
+                  latitude
+                }
+                onChange={
+                  (event) =>
+                    setLatitude(
+                      event.target.value
+                    )
                 }
                 placeholder="20.2961"
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500"
@@ -760,20 +1104,25 @@ export default function Imagery() {
               Longitude
             </label>
 
+
             <div className="relative">
 
               <MapPin className="absolute left-3 top-3 w-4 h-4 text-[var(--text-muted)]" />
+
 
               <input
                 type="number"
                 step="any"
                 min="-180"
                 max="180"
-                value={longitude}
-                onChange={(event) =>
-                  setLongitude(
-                    event.target.value
-                  )
+                value={
+                  longitude
+                }
+                onChange={
+                  (event) =>
+                    setLongitude(
+                      event.target.value
+                    )
                 }
                 placeholder="85.8245"
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500"
@@ -792,17 +1141,22 @@ export default function Imagery() {
               Captured At
             </label>
 
+
             <div className="relative">
 
               <CalendarDays className="absolute left-3 top-3 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
 
+
               <input
                 type="datetime-local"
-                value={capturedAt}
-                onChange={(event) =>
-                  setCapturedAt(
-                    event.target.value
-                  )
+                value={
+                  capturedAt
+                }
+                onChange={
+                  (event) =>
+                    setCapturedAt(
+                      event.target.value
+                    )
                 }
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500"
               />
@@ -811,6 +1165,8 @@ export default function Imagery() {
 
           </div>
 
+
+          {/* UPLOAD BUTTON */}
 
           <button
             type="submit"
@@ -822,20 +1178,34 @@ export default function Imagery() {
             className="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
 
-            <Upload className="w-4 h-4" />
+            {uploading ? (
 
-            {uploading
-              ? "Uploading..."
-              : "Upload Imagery"}
+              <RefreshCw className="w-4 h-4 animate-spin" />
+
+            ) : (
+
+              <Upload className="w-4 h-4" />
+
+            )}
+
+
+            {
+              uploading
+                ? "Uploading..."
+                : "Upload Imagery"
+            }
 
           </button>
 
         </form>
 
 
-        {/* IMAGERY LIBRARY */}
+        {/* ============================================================= */}
+        {/* IMAGERY LIBRARY                                               */}
+        {/* ============================================================= */}
 
         <div className="xl:col-span-2 theme-card rounded-xl border border-[var(--border-color)] p-5">
+
 
           <div className="flex items-center justify-between gap-4 mb-5">
 
@@ -845,10 +1215,9 @@ export default function Imagery() {
                 Imagery Library
               </h3>
 
+
               <p className="text-xs text-[var(--text-secondary)] mt-1">
-                {
-                  imagery.length
-                } uploaded image
+                {imagery.length} uploaded image
                 {
                   imagery.length === 1
                     ? ""
@@ -858,6 +1227,7 @@ export default function Imagery() {
 
             </div>
 
+
             <ImageIcon className="w-5 h-5 text-sky-500" />
 
           </div>
@@ -866,7 +1236,11 @@ export default function Imagery() {
           {loading ? (
 
             <div className="py-20 text-center text-sm text-[var(--text-secondary)]">
+
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-3 text-sky-500" />
+
               Loading imagery...
+
             </div>
 
           ) : !currentDisaster ? (
@@ -876,8 +1250,7 @@ export default function Imagery() {
               <TriangleAlert className="w-8 h-8 mx-auto text-orange-500 mb-3" />
 
               <p className="text-sm text-[var(--text-secondary)]">
-                Select a disaster
-                event first.
+                Select a disaster event first.
               </p>
 
             </div>
@@ -893,9 +1266,7 @@ export default function Imagery() {
               </p>
 
               <p className="text-xs text-[var(--text-secondary)] mt-1">
-                Upload the first
-                operational image for
-                this disaster.
+                Upload the first operational image for this disaster.
               </p>
 
             </div>
@@ -905,123 +1276,241 @@ export default function Imagery() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {imagery.map(
-                (item) => (
+                (item) => {
 
-                  <article
-                    key={item.id}
-                    className="rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)]"
-                  >
+                  const isThisAnalyzing =
+                    analyzingId ===
+                    item.id;
 
-                    <img
-                      src={
-                        getAssetUrl(
-                          item.imageUrl
-                        )
+
+                  const analysisBusy =
+                    item.processingStatus ===
+                      "QUEUED" ||
+                    item.processingStatus ===
+                      "PROCESSING";
+
+
+                  const canAnalyze =
+                    item.processingStatus ===
+                      "UPLOADED" ||
+                    item.processingStatus ===
+                      "FAILED";
+
+
+                  return (
+
+                    <article
+                      key={
+                        item.id
                       }
-                      alt={
-                        item.originalFilename
-                      }
-                      className="w-full h-52 object-cover"
-                    />
+                      className="rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)]"
+                    >
 
 
-                    <div className="p-4 space-y-3">
+                      {/* IMAGE */}
 
-                      <div className="flex items-start justify-between gap-3">
-
-                        <div className="min-w-0">
-
-                          <p className="font-bold text-sm text-[var(--text-primary)] truncate">
-                            {
-                              item.originalFilename
-                            }
-                          </p>
-
-                          <p className="text-[11px] text-[var(--text-muted)] mt-1">
-                            {
-                              item.sourceType
-                            }
-                            {" • "}
-                            {
-                              formatBytes(
-                                item.sizeBytes
-                              )
-                            }
-                          </p>
-
-                        </div>
-
-                        <span
-                          className={`text-[9px] font-bold px-2 py-1 rounded border ${getStatusClasses(
-                            item.processingStatus
-                          )}`}
-                        >
-                          {
-                            item.processingStatus
-                          }
-                        </span>
-
-                      </div>
+                      <img
+                        src={
+                          getAssetUrl(
+                            item.imageUrl
+                          )
+                        }
+                        alt={
+                          item.originalFilename
+                        }
+                        className="w-full h-52 object-cover"
+                      />
 
 
-                      <div className="space-y-1 text-xs text-[var(--text-secondary)]">
-
-                        <p>
-                          Uploaded:{" "}
-                          {
-                            formatDate(
-                              item.createdAt
-                            )
-                          }
-                        </p>
-
-                        <p>
-                          Captured:{" "}
-                          {
-                            formatDate(
-                              item.capturedAt
-                            )
-                          }
-                        </p>
+                      <div className="p-4 space-y-4">
 
 
-                        {item.location
-                          ?.latitude !==
-                          null &&
-                          item.location
-                            ?.latitude !==
-                            undefined &&
-                          item.location
-                            ?.longitude !==
-                            null &&
-                          item.location
-                            ?.longitude !==
-                            undefined && (
+                        {/* FILE + STATUS */}
 
-                            <p className="flex items-center gap-1">
+                        <div className="flex items-start justify-between gap-3">
 
-                              <MapPin className="w-3 h-3" />
+                          <div className="min-w-0">
 
+                            <p className="font-bold text-sm text-[var(--text-primary)] truncate">
                               {
-                                item.location.latitude
+                                item.originalFilename
                               }
-                              ,
-                              {" "}
+                            </p>
+
+
+                            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+
                               {
-                                item.location.longitude
+                                item.sourceType
+                              }
+
+                              {" • "}
+
+                              {
+                                formatBytes(
+                                  item.sizeBytes
+                                )
                               }
 
                             </p>
 
-                          )}
+                          </div>
+
+
+                          <span
+                            className={`text-[9px] font-bold px-2 py-1 rounded border whitespace-nowrap ${getStatusClasses(
+                              item.processingStatus
+                            )}`}
+                          >
+                            {
+                              item.processingStatus
+                            }
+                          </span>
+
+                        </div>
+
+
+                        {/* METADATA */}
+
+                        <div className="space-y-1 text-xs text-[var(--text-secondary)]">
+
+                          <p>
+                            Uploaded:{" "}
+                            {
+                              formatDate(
+                                item.createdAt
+                              )
+                            }
+                          </p>
+
+
+                          <p>
+                            Captured:{" "}
+                            {
+                              formatDate(
+                                item.capturedAt
+                              )
+                            }
+                          </p>
+
+
+                          {
+                            item.location
+                              ?.latitude !==
+                              null &&
+                            item.location
+                              ?.latitude !==
+                              undefined &&
+                            item.location
+                              ?.longitude !==
+                              null &&
+                            item.location
+                              ?.longitude !==
+                              undefined && (
+
+                              <p className="flex items-center gap-1">
+
+                                <MapPin className="w-3 h-3" />
+
+                                {
+                                  item.location.latitude
+                                }
+
+                                {", "}
+
+                                {
+                                  item.location.longitude
+                                }
+
+                              </p>
+
+                            )
+                          }
+
+                        </div>
+
+
+                        {/* ================================================= */}
+                        {/* ANALYSIS ACTIONS                                  */}
+                        {/* ================================================= */}
+
+
+                        {canAnalyze && (
+
+                          <button
+                            type="button"
+                            onClick={
+                              () =>
+                                handleAnalyze(
+                                  item
+                                )
+                            }
+                            disabled={
+                              analyzingId !==
+                              null
+                            }
+                            className="w-full py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+                          >
+
+                            {isThisAnalyzing ? (
+
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+
+                            ) : (
+
+                              <ScanSearch className="w-4 h-4" />
+
+                            )}
+
+
+                            {
+                              isThisAnalyzing
+                                ? "Analyzing..."
+                                : item.processingStatus ===
+                                  "FAILED"
+                                ? "Retry AI Analysis"
+                                : "Run AI Analysis"
+                            }
+
+                          </button>
+
+                        )}
+
+
+                        {/* PROCESSING */}
+
+                        {analysisBusy && (
+                          <div className="flex items-center justify-center gap-2 rounded-lg border border-violet-500/20 bg-violet-500/10 py-2.5 text-xs font-semibold text-violet-500">
+
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+
+                            AI analysis in progress...
+
+                          </div>
+                        )}
+
+
+                        {/* ANALYZED */}
+
+                        {item.processingStatus ===
+                          "ANALYZED" && (
+
+                          <div className="flex items-center justify-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 py-2.5 text-xs font-semibold text-emerald-500">
+
+                            <CheckCircle2 className="w-4 h-4" />
+
+                            AI analysis completed
+
+                          </div>
+
+                        )}
 
                       </div>
 
-                    </div>
+                    </article>
 
-                  </article>
-
-                )
+                  );
+                }
               )}
 
             </div>
