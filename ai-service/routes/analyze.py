@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import (
     APIRouter,
     File,
@@ -6,13 +8,8 @@ from fastapi import (
     UploadFile,
 )
 
-from schemas.analyze import (
-    AnalyzeResponse,
-)
-
-from services.analyze_service import (
-    analyze_image,
-)
+from schemas.analyze import AnalyzeResponse
+from services.analyze_service import analyze_image
 
 
 router = APIRouter(
@@ -27,16 +24,16 @@ router = APIRouter(
 )
 async def analyze(
     image: UploadFile = File(...),
-    imageId: str = Form(...),
+    imageId: UUID = Form(...),
 ):
     try:
         return await analyze_image(
             image=image,
-            image_id=imageId,
+            image_id=str(imageId),
         )
 
     except ValueError as error:
         raise HTTPException(
             status_code=400,
             detail=str(error),
-        )
+        ) from error
