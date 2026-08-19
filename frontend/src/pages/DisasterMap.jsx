@@ -295,12 +295,7 @@ export default function DisasterMap() {
   ] = useState("ALL");
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Map report mode
-  |--------------------------------------------------------------------------
-  */
-
+ 
   const [
     reportMode,
     setReportMode,
@@ -327,11 +322,7 @@ export default function DisasterMap() {
   );
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Load real findings
-  |--------------------------------------------------------------------------
-  */
+  
 
   const loadFindings =
     useCallback(
@@ -383,13 +374,25 @@ export default function DisasterMap() {
   useEffect(() => {
     void loadFindings();
   }, [loadFindings]);
+  useEffect(() => {
 
+    setSelectedFinding(
+      null
+    );
 
-  /*
-  |--------------------------------------------------------------------------
-  | Only geolocated findings can appear on the map
-  |--------------------------------------------------------------------------
-  */
+    setFindingRelations(
+      []
+    );
+
+    setRelationsError(
+      ""
+    );
+
+  }, [
+    currentDisaster?.id,
+  ]);
+
+  
 
   const geolocatedFindings =
     useMemo(
@@ -419,13 +422,6 @@ export default function DisasterMap() {
         findings,
       ]
     );
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | Filtered map layer
-  |--------------------------------------------------------------------------
-  */
 
   const filteredFindings =
     useMemo(
@@ -459,14 +455,7 @@ export default function DisasterMap() {
         sourceFilter,
       ]
     );
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | Intelligence summary
-  |--------------------------------------------------------------------------
-  */
-
+ 
   const summary =
     useMemo(
       () => ({
@@ -526,13 +515,6 @@ export default function DisasterMap() {
       ]
     );
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | Map click
-  |--------------------------------------------------------------------------
-  */
-
   function handleLocationSelected({
     latitude,
     longitude,
@@ -565,11 +547,7 @@ export default function DisasterMap() {
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Form
-  |--------------------------------------------------------------------------
-  */
+  
 
   function handleChange(
     event
@@ -675,10 +653,6 @@ export default function DisasterMap() {
       }
 
 
-      /*
-       * Immediate map update.
-       */
-
       setFindings(
         (previous) => [
           finding,
@@ -708,11 +682,6 @@ export default function DisasterMap() {
 
     }
   }
-  /*
-  |--------------------------------------------------------------------------
-  | Evidence Intelligence
-  |--------------------------------------------------------------------------
-  */
 
   const loadFindingRelations =
     useCallback(
@@ -780,11 +749,6 @@ export default function DisasterMap() {
       []
     );
 
-  /*
-  |--------------------------------------------------------------------------
-  | Helpers
-  |--------------------------------------------------------------------------
-  */
 
   function prettyType(
     type
@@ -869,11 +833,6 @@ export default function DisasterMap() {
 
   return (
     <div className="space-y-5">
-
-
-      {/* ============================================================= */}
-      {/* HEADER                                                        */}
-      {/* ============================================================= */}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
 
@@ -974,11 +933,6 @@ export default function DisasterMap() {
 
       </div>
 
-
-      {/* ============================================================= */}
-      {/* MESSAGES                                                      */}
-      {/* ============================================================= */}
-
       {error && (
 
         <div className="flex gap-2 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 text-sm">
@@ -1007,11 +961,6 @@ export default function DisasterMap() {
         </div>
 
       )}
-
-
-      {/* ============================================================= */}
-      {/* LIVE INTELLIGENCE SUMMARY                                     */}
-      {/* ============================================================= */}
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
 
@@ -1068,11 +1017,6 @@ export default function DisasterMap() {
         />
 
       </div>
-
-
-      {/* ============================================================= */}
-      {/* FILTERS                                                       */}
-      {/* ============================================================= */}
 
       <div className="theme-card rounded-xl border border-[var(--border-color)] p-3 flex flex-wrap items-center gap-3">
 
@@ -1171,11 +1115,6 @@ export default function DisasterMap() {
 
       </div>
 
-
-      {/* ============================================================= */}
-      {/* MAIN MAP                                                      */}
-      {/* ============================================================= */}
-
       <div className="relative theme-card rounded-2xl overflow-hidden border border-[var(--border-color)] h-[650px]">
 
 
@@ -1196,10 +1135,6 @@ export default function DisasterMap() {
           </div>
 
         )}
-
-
-        {/* REPORT MODE HUD */}
-
         {reportMode && (
 
           <div className="absolute z-[1000] top-4 left-1/2 -translate-x-1/2 rounded-xl px-5 py-3 bg-orange-600 text-white shadow-2xl">
@@ -1215,9 +1150,7 @@ export default function DisasterMap() {
           </div>
 
         )}
-
-
-        {/* LEGEND */}
+      
 
         <div className="absolute z-[900] left-4 bottom-4 bg-slate-950/90 border border-slate-700 rounded-xl p-4 text-white shadow-xl">
 
@@ -1345,9 +1278,7 @@ export default function DisasterMap() {
                   >
 
                     <div className="space-y-3 text-slate-900">
-
-
-                      {/* SOURCE */}
+                    
 
                       <div className="flex items-center justify-between gap-2">
 
@@ -1383,9 +1314,6 @@ export default function DisasterMap() {
 
                       </div>
 
-
-                      {/* TITLE */}
-
                       <div>
 
                         <h4 className="font-bold text-sm">
@@ -1408,9 +1336,6 @@ export default function DisasterMap() {
 
                       </div>
 
-
-                      {/* DESCRIPTION */}
-
                       {finding.description && (
 
                         <p className="text-xs text-slate-600">
@@ -1422,7 +1347,7 @@ export default function DisasterMap() {
                       )}
 
 
-                      {/* INTELLIGENCE */}
+                      
 
                       <div className="grid grid-cols-2 gap-2">
 
@@ -1462,7 +1387,7 @@ export default function DisasterMap() {
                       </div>
 
 
-                      {/* POSITION */}
+                      
 
                       <div className="flex gap-1.5 text-[10px] text-slate-500">
 
@@ -1485,7 +1410,7 @@ export default function DisasterMap() {
                       </div>
 
 
-                      {/* SAFE OPERATIONAL ACTION */}
+                      
 
                       <div className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-[10px] text-orange-800">
 
@@ -1554,11 +1479,6 @@ export default function DisasterMap() {
         )}
 
       </div>
-
-
-      {/* ============================================================= */}
-      {/* REPORT PANEL                                                  */}
-      {/* ============================================================= */}
 
       {showReportPanel && (
 
@@ -1785,64 +1705,57 @@ export default function DisasterMap() {
 
       )}
       {
-  selectedFinding &&
-  (
-    <EvidenceIntelligencePanel
-      finding={
-        selectedFinding
+        selectedFinding &&
+        (
+          <EvidenceIntelligencePanel
+            finding={
+              selectedFinding
+            }
+
+            relations={
+              findingRelations
+            }
+
+            loading={
+              relationsLoading
+            }
+
+            error={
+              relationsError
+            }
+
+            onRefresh={
+              () =>
+                void loadFindingRelations(
+                  selectedFinding
+                )
+            }
+
+            onClose={
+              () => {
+
+                setSelectedFinding(
+                  null
+                );
+
+
+                setFindingRelations(
+                  []
+                );
+
+
+                setRelationsError(
+                  ""
+                );
+
+              }
+            }
+          />
+        )
       }
-
-      relations={
-        findingRelations
-      }
-
-      loading={
-        relationsLoading
-      }
-
-      error={
-        relationsError
-      }
-
-      onRefresh={
-        () =>
-          void loadFindingRelations(
-            selectedFinding
-          )
-      }
-
-      onClose={
-        () => {
-
-          setSelectedFinding(
-            null
-          );
-
-
-          setFindingRelations(
-            []
-          );
-
-
-          setRelationsError(
-            ""
-          );
-
-        }
-      }
-    />
-  )
-}
     </div>
   );
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Summary card
-|--------------------------------------------------------------------------
-*/
 
 function SummaryCard({
   label,
@@ -1906,11 +1819,7 @@ function SummaryCard({
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Legend
-|--------------------------------------------------------------------------
-*/
+
 
 function LegendItem({
   color,
