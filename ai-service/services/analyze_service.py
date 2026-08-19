@@ -6,7 +6,7 @@ from fastapi import UploadFile
 from services.model_service import (
     MODEL_NAME,
     MODEL_VERSION,
-    convert_detections_to_findings,
+    convert_segmentation_to_findings,
     run_inference,
 )
 
@@ -40,7 +40,7 @@ async def analyze_image(
             str(temporary_path)
         )
 
-        findings = convert_detections_to_findings(
+        findings = convert_segmentation_to_findings(
             result
         )
 
