@@ -32,7 +32,10 @@ class RawDetection(BaseModel):
         le=1.0,
     )
 
-    bbox: list[float]
+    bbox: list[float] = Field(
+        min_length=4,
+        max_length=4,
+    )
 
 
 class Finding(BaseModel):
@@ -54,7 +57,6 @@ class Finding(BaseModel):
     ) = None
 
     title: str | None = None
-
     description: str | None = None
 
     confidence: float = Field(
@@ -74,12 +76,13 @@ class Finding(BaseModel):
         le=180,
     )
 
-    bbox: list[float] | None = None
+    bbox: list[float] | None = Field(
+        default=None,
+        min_length=4,
+        max_length=4,
+    )
 
-    prediction: dict[
-        str,
-        Any,
-    ]
+    prediction: dict[str, Any]
 
 
 class AnalyzeResponse(BaseModel):
@@ -88,7 +91,8 @@ class AnalyzeResponse(BaseModel):
     )
 
     image_id: str = Field(
-        alias="imageId"
+        alias="imageId",
+        min_length=1,
     )
 
     analysis_type: Literal[
@@ -105,10 +109,10 @@ class AnalyzeResponse(BaseModel):
         ge=0,
     )
 
-    detections: list[
-        RawDetection
-    ]
+    detections: list[RawDetection] = Field(
+        default_factory=list
+    )
 
-    findings: list[
-        Finding
-    ]
+    findings: list[Finding] = Field(
+        default_factory=list
+    )
