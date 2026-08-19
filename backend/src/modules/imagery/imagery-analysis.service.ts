@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-
+import {
+  refreshFindingCorrelationBestEffort,
+} from "../findings/finding-correlation.service.js";
 import {
   analyzeImageWithAI,
 } from "../../integrations/ai/ai.client.js";
@@ -56,9 +58,9 @@ export async function analyzeImageryService(
 
   if (
     imagery.processingStatus ===
-      "QUEUED" ||
+    "QUEUED" ||
     imagery.processingStatus ===
-      "PROCESSING"
+    "PROCESSING"
   ) {
     throw new AppError(
       409,
@@ -245,18 +247,26 @@ export async function analyzeImageryService(
       const finding
       of result.findings
     ) {
-      await createFinding({
-        disasterId:
-          imagery.disasterId,
 
-        imageryId:
-          imagery.id,
+      const createdFinding =
+        await createFinding({
+          disasterId:
+            imagery.disasterId,
 
-        aiRunId:
-          aiRun.id,
+          imageryId:
+            imagery.id,
 
-        finding,
-      });
+          aiRunId:
+            aiRun.id,
+
+          finding,
+        });
+
+
+      await refreshFindingCorrelationBestEffort(
+        createdFinding.id
+      );
+
     }
 
 

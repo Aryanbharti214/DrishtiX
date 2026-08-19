@@ -220,6 +220,25 @@ function classifyPair(
    * POSSIBLE_DUPLICATE,
    * never automatic deletion.
    */
+  /*
+ * Rejected evidence must never
+ * become corroboration or duplicate
+ * support.
+ *
+ * A rejected + trusted same-type
+ * pair was already handled above
+ * as DISPUTED.
+ */
+
+else if (
+  targetRejected
+  ||
+  candidateRejected
+) {
+
+  return null;
+
+}
 
   else if (
     sameType
@@ -594,4 +613,45 @@ export async function getFindingRelationsService(
   return findRelationsForFinding(
     findingId
   );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Best-effort derived intelligence refresh
+|--------------------------------------------------------------------------
+|
+| Correlation is derived data.
+|
+| A correlation failure must NEVER cause:
+|
+| - responder finding creation to fail
+| - human verification to fail
+| - successful AI analysis to be marked FAILED
+|
+|--------------------------------------------------------------------------
+*/
+
+export async function refreshFindingCorrelationBestEffort(
+  findingId: string
+) {
+
+  try {
+
+    await correlateFindingService(
+      findingId
+    );
+
+    return true;
+
+  } catch (error) {
+
+    console.error(
+      `Failed to refresh correlation for finding ${findingId}:`,
+      error
+    );
+
+    return false;
+
+  }
 }
