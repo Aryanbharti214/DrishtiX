@@ -251,3 +251,13 @@ export async function getFindingVerificationHistory(
     `/findings/${findingId}/verifications`
   );
 }
+
+
+
+export async function getFindingRelations(
+  findingId
+) {
+  return apiRequest(
+    `/findings/${findingId}/relations`
+  );
+}

@@ -34,8 +34,10 @@ import {
 import {
   createManualFinding,
   getDisasterFindings,
+  getFindingRelations,
 } from "../services/api";
-
+import EvidenceIntelligencePanel
+  from "../components/EvidenceIntelligencePanel";
 import {
   useDisaster,
 } from "../context/DisasterContext";
@@ -247,7 +249,34 @@ export default function DisasterMap() {
     setSuccessMessage,
   ] = useState("");
 
+  /*
+  |--------------------------------------------------------------------------
+  | Evidence Intelligence
+  |--------------------------------------------------------------------------
+  */
 
+  const [
+    selectedFinding,
+    setSelectedFinding,
+  ] = useState(null);
+
+
+  const [
+    findingRelations,
+    setFindingRelations,
+  ] = useState([]);
+
+
+  const [
+    relationsLoading,
+    setRelationsLoading,
+  ] = useState(false);
+
+
+  const [
+    relationsError,
+    setRelationsError,
+  ] = useState("");
   /*
   |--------------------------------------------------------------------------
   | Filters
@@ -406,16 +435,16 @@ export default function DisasterMap() {
 
             const severityMatches =
               severityFilter ===
-                "ALL" ||
+              "ALL" ||
               finding.severity ===
-                severityFilter;
+              severityFilter;
 
 
             const sourceMatches =
               sourceFilter ===
-                "ALL" ||
+              "ALL" ||
               finding.source ===
-                sourceFilter;
+              sourceFilter;
 
 
             return (
@@ -679,7 +708,77 @@ export default function DisasterMap() {
 
     }
   }
+  /*
+  |--------------------------------------------------------------------------
+  | Evidence Intelligence
+  |--------------------------------------------------------------------------
+  */
 
+  const loadFindingRelations =
+    useCallback(
+      async (
+        finding
+      ) => {
+
+        if (
+          !finding?.id
+        ) {
+          return;
+        }
+
+
+        try {
+
+          setSelectedFinding(
+            finding
+          );
+
+
+          setRelationsLoading(
+            true
+          );
+
+
+          setRelationsError(
+            ""
+          );
+
+
+          const response =
+            await getFindingRelations(
+              finding.id
+            );
+
+
+          setFindingRelations(
+            response?.data
+              ?.relations ??
+            []
+          );
+
+        } catch (err) {
+
+          setFindingRelations(
+            []
+          );
+
+
+          setRelationsError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load evidence intelligence"
+          );
+
+        } finally {
+
+          setRelationsLoading(
+            false
+          );
+
+        }
+      },
+      []
+    );
 
   /*
   |--------------------------------------------------------------------------
@@ -801,7 +900,9 @@ export default function DisasterMap() {
                 currentDisaster
                   ?.name ??
                 "no selected disaster"
+
               }
+
             </span>.
 
           </p>
@@ -825,11 +926,10 @@ export default function DisasterMap() {
           >
 
             <RefreshCw
-              className={`w-4 h-4 ${
-                loading
-                  ? "animate-spin"
-                  : ""
-              }`}
+              className={`w-4 h-4 ${loading
+                ? "animate-spin"
+                : ""
+                }`}
             />
 
             Refresh
@@ -854,11 +954,10 @@ export default function DisasterMap() {
 
               setError("");
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 transition-colors ${
-              reportMode
-                ? "bg-orange-500 text-white"
-                : "bg-orange-600 hover:bg-orange-700 text-white"
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 transition-colors ${reportMode
+              ? "bg-orange-500 text-white"
+              : "bg-orange-600 hover:bg-orange-700 text-white"
+              }`}
           >
 
             <Crosshair className="w-4 h-4" />
@@ -1392,7 +1491,7 @@ export default function DisasterMap() {
 
                         {
                           finding.verificationStatus ===
-                          "PENDING"
+                            "PENDING"
                             ? "Awaiting responder verification before operational prioritization."
                             : `Verification status: ${finding.verificationStatus}`
                         }
@@ -1400,7 +1499,35 @@ export default function DisasterMap() {
                       </div>
 
                     </div>
+                    <button
+                      type="button"
+                      onClick={
+                        (event) => {
 
+                          event.stopPropagation();
+
+
+                          void loadFindingRelations(
+                            finding
+                          );
+
+                        }
+                      }
+                      className="mt-3 w-full
+    px-3
+    py-2
+    rounded-lg
+    bg-orange-600
+    hover:bg-orange-700
+    text-white
+    text-xs
+    font-bold
+  "
+                    >
+
+                      View Evidence Intelligence
+
+                    </button>
                   </Popup>
 
                 </CircleMarker>
@@ -1657,7 +1784,55 @@ export default function DisasterMap() {
         </div>
 
       )}
+      {
+  selectedFinding &&
+  (
+    <EvidenceIntelligencePanel
+      finding={
+        selectedFinding
+      }
 
+      relations={
+        findingRelations
+      }
+
+      loading={
+        relationsLoading
+      }
+
+      error={
+        relationsError
+      }
+
+      onRefresh={
+        () =>
+          void loadFindingRelations(
+            selectedFinding
+          )
+      }
+
+      onClose={
+        () => {
+
+          setSelectedFinding(
+            null
+          );
+
+
+          setFindingRelations(
+            []
+          );
+
+
+          setRelationsError(
+            ""
+          );
+
+        }
+      }
+    />
+  )
+}
     </div>
   );
 }
