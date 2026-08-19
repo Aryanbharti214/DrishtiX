@@ -8,6 +8,8 @@ import {
   getFindingByIdController,
   getDisasterFindingsController,
   getImageryFindingsController,
+  getFindingVerificationHistoryController,
+  verifyFindingController,
 } from "./finding.controller.js";
 
 
@@ -30,6 +32,24 @@ findingRouter.get(
 findingRouter.get(
   "/imagery/:imageryId",
   getImageryFindingsController
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Human verification
+|--------------------------------------------------------------------------
+*/
+
+findingRouter.post(
+  "/:id/verify",
+  verifyFindingController
+);
+
+
+findingRouter.get(
+  "/:id/verifications",
+  getFindingVerificationHistoryController
 );
 
 

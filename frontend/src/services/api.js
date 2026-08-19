@@ -225,3 +225,36 @@ export async function createManualFinding(
     }
   );
 }
+
+
+export async function verifyFinding(
+  findingId,
+  payload
+) {
+  return apiRequest(
+    `/findings/${findingId}/verify`,
+    {
+      method:
+        "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body:
+        JSON.stringify(
+          payload
+        ),
+    }
+  );
+}
+
+
+export async function getFindingVerificationHistory(
+  findingId
+) {
+  return apiRequest(
+    `/findings/${findingId}/verifications`
+  );
+}

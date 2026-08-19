@@ -243,3 +243,165 @@ export type CreateManualFindingInput =
   z.infer<
     typeof createManualFindingSchema
   >;
+
+
+
+  /*
+|--------------------------------------------------------------------------
+| Human verification
+|--------------------------------------------------------------------------
+*/
+
+const findingCorrectionSchema =
+  z.object({
+    type:
+      z.enum(
+        findingTypes
+      )
+        .optional(),
+
+    severity:
+      z.enum(
+        findingSeverities
+      )
+        .optional(),
+
+    title:
+      z.string()
+        .trim()
+        .min(3)
+        .max(255)
+        .optional(),
+
+    description:
+      z.string()
+        .trim()
+        .max(5000)
+        .optional(),
+
+    latitude:
+      z.number()
+        .min(-90)
+        .max(90)
+        .optional(),
+
+    longitude:
+      z.number()
+        .min(-180)
+        .max(180)
+        .optional(),
+  })
+  .refine(
+    (value) =>
+      Object.keys(value).length > 0,
+    {
+      message:
+        "At least one corrected field is required",
+    }
+  )
+  .refine(
+    (value) => {
+      const hasLatitude =
+        value.latitude !==
+        undefined;
+
+      const hasLongitude =
+        value.longitude !==
+        undefined;
+
+      return (
+        hasLatitude ===
+        hasLongitude
+      );
+    },
+    {
+      message:
+        "Latitude and longitude must be corrected together",
+    }
+  );
+
+
+const confirmFindingSchema =
+  z.object({
+    decision:
+      z.literal(
+        "CONFIRMED"
+      ),
+
+    reviewerLabel:
+      z.string()
+        .trim()
+        .min(2)
+        .max(150)
+        .optional(),
+
+    reason:
+      z.string()
+        .trim()
+        .max(2000)
+        .optional(),
+  });
+
+
+const rejectFindingSchema =
+  z.object({
+    decision:
+      z.literal(
+        "REJECTED"
+      ),
+
+    reviewerLabel:
+      z.string()
+        .trim()
+        .min(2)
+        .max(150)
+        .optional(),
+
+    reason:
+      z.string()
+        .trim()
+        .min(3)
+        .max(2000),
+  });
+
+
+const correctFindingSchema =
+  z.object({
+    decision:
+      z.literal(
+        "CORRECTED"
+      ),
+
+    reviewerLabel:
+      z.string()
+        .trim()
+        .min(2)
+        .max(150)
+        .optional(),
+
+    reason:
+      z.string()
+        .trim()
+        .min(3)
+        .max(2000),
+
+    corrected:
+      findingCorrectionSchema,
+  });
+
+
+export const verifyFindingSchema =
+  z.discriminatedUnion(
+    "decision",
+    [
+      confirmFindingSchema,
+      rejectFindingSchema,
+      correctFindingSchema,
+    ]
+  );
+
+
+export type VerifyFindingInput =
+  z.infer<
+    typeof verifyFindingSchema
+  >;
