@@ -448,62 +448,139 @@ export default function Imagery() {
   */
 
   async function handleAnalyze(
-    item
+  item
+) {
+  if (
+    item.processingStatus !==
+      "UPLOADED" &&
+    item.processingStatus !==
+      "FAILED"
   ) {
+    return;
+  }
+
+
+  if (analyzingId) {
+    return;
+  }
+
+
+  const previousStatus =
+    item.processingStatus;
+
+
+  try {
+    setAnalyzingId(
+      item.id
+    );
+
+
+    setError("");
+    setSuccessMessage("");
+
+
     /*
-     * Analysis should only be manually
-     * started from UPLOADED or FAILED.
+     * Optimistically show processing
+     * while Express waits for FastAPI.
      */
 
-    if (
-      item.processingStatus !==
-        "UPLOADED" &&
-      item.processingStatus !==
-        "FAILED"
-    ) {
-      return;
-    }
+    setImagery(
+      (previous) =>
+        previous.map(
+          (current) =>
+            current.id ===
+            item.id
+              ? {
+                  ...current,
+
+                  processingStatus:
+                    "PROCESSING",
+                }
+              : current
+        )
+    );
 
 
-    /*
-     * Prevent multiple analysis requests
-     * from this UI at the same time.
-     */
-
-    if (analyzingId) {
-      return;
-    }
-
-
-    const previousStatus =
-      item.processingStatus;
-
-
-    try {
-      setAnalyzingId(
+    const response =
+      await analyzeImagery(
         item.id
       );
 
-      setError("");
-      setSuccessMessage("");
+
+    const result =
+      response?.data;
 
 
-      /*
-       * Optimistic UI:
-       *
-       * Backend itself transitions:
-       *
-       * UPLOADED
-       *    ↓
-       * QUEUED
-       *    ↓
-       * PROCESSING
-       *
-       * Since this synchronous request is
-       * quick from the UI perspective,
-       * show PROCESSING immediately.
-       */
+    const updatedImagery =
+      result?.imagery;
 
+
+    if (!updatedImagery) {
+      throw new Error(
+        "Backend did not return analyzed imagery."
+      );
+    }
+
+
+    setImagery(
+      (previous) =>
+        previous.map(
+          (current) =>
+            current.id ===
+            updatedImagery.id
+              ? updatedImagery
+              : current
+        )
+    );
+
+
+    const detectionCount =
+      result?.detectionCount ??
+      0;
+
+
+    const findingsCreated =
+      result?.findingsCreated ??
+      0;
+
+
+    setSuccessMessage(
+      `AI analysis complete: ${detectionCount} raw detection${
+        detectionCount === 1
+          ? ""
+          : "s"
+      }, ${findingsCreated} disaster finding${
+        findingsCreated === 1
+          ? ""
+          : "s"
+      }.`
+    );
+
+  } catch (err) {
+    /*
+     * Backend should normally have
+     * persisted FAILED already.
+     *
+     * Refresh the authoritative state.
+     */
+
+    try {
+      if (
+        currentDisaster?.id
+      ) {
+        const response =
+          await getDisasterImagery(
+            currentDisaster.id
+          );
+
+
+        setImagery(
+          response?.data
+            ?.imagery ?? []
+        );
+      }
+
+    } catch {
       setImagery(
         (previous) =>
           previous.map(
@@ -514,137 +591,26 @@ export default function Imagery() {
                     ...current,
 
                     processingStatus:
-                      "PROCESSING",
+                      previousStatus,
                   }
                 : current
           )
       );
-
-
-      const response =
-        await analyzeImagery(
-          item.id
-        );
-
-
-      const result =
-        response?.data;
-
-
-      const updatedImagery =
-        result?.imagery;
-
-
-      if (!updatedImagery) {
-        throw new Error(
-          "Backend did not return analyzed imagery."
-        );
-      }
-
-
-      /*
-       * Backend returns updated imagery
-       * with ANALYZED status.
-       */
-
-      setImagery(
-        (previous) =>
-          previous.map(
-            (current) =>
-              current.id ===
-              updatedImagery.id
-                ? updatedImagery
-                : current
-          )
-      );
-
-
-      const detectionCount =
-        result?.detectionCount ??
-        0;
-
-
-      const findingsCreated =
-        result?.findingsCreated ??
-        0;
-
-
-      setSuccessMessage(
-        `AI analysis complete: ${detectionCount} raw detection${
-          detectionCount === 1
-            ? ""
-            : "s"
-        }, ${findingsCreated} disaster finding${
-          findingsCreated === 1
-            ? ""
-            : "s"
-        }.`
-      );
-
-    } catch (err) {
-
-      /*
-       * Try retrieving the authoritative
-       * backend status.
-       *
-       * For example, if FastAPI failed,
-       * backend should already have marked
-       * the imagery FAILED.
-       */
-
-      try {
-        if (
-          currentDisaster?.id
-        ) {
-          const response =
-            await getDisasterImagery(
-              currentDisaster.id
-            );
-
-          setImagery(
-            response?.data
-              ?.imagery ?? []
-          );
-        }
-      } catch {
-        /*
-         * If even the refresh fails,
-         * restore the status the card
-         * had before this request.
-         */
-
-        setImagery(
-          (previous) =>
-            previous.map(
-              (current) =>
-                current.id ===
-                item.id
-                  ? {
-                      ...current,
-
-                      processingStatus:
-                        previousStatus,
-                    }
-                  : current
-            )
-        );
-      }
-
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "AI analysis failed"
-      );
-
-    } finally {
-
-      setAnalyzingId(
-        null
-      );
-
     }
+
+
+    setError(
+      err instanceof Error
+        ? err.message
+        : "AI analysis failed"
+    );
+
+  } finally {
+    setAnalyzingId(
+      null
+    );
   }
+}
 
 
   /*
@@ -727,7 +693,6 @@ export default function Imagery() {
         new Date(value)
       );
   }
-
 
   function getStatusClasses(
     status
@@ -825,11 +790,10 @@ export default function Imagery() {
         >
 
           <RefreshCw
-            className={`w-4 h-4 ${
-              loading
+            className={`w-4 h-4 ${loading
                 ? "animate-spin"
                 : ""
-            }`}
+              }`}
           />
 
           Refresh
@@ -1285,16 +1249,16 @@ export default function Imagery() {
 
                   const analysisBusy =
                     item.processingStatus ===
-                      "QUEUED" ||
+                    "QUEUED" ||
                     item.processingStatus ===
-                      "PROCESSING";
+                    "PROCESSING";
 
 
                   const canAnalyze =
                     item.processingStatus ===
-                      "UPLOADED" ||
+                    "UPLOADED" ||
                     item.processingStatus ===
-                      "FAILED";
+                    "FAILED";
 
 
                   return (
@@ -1397,16 +1361,16 @@ export default function Imagery() {
                           {
                             item.location
                               ?.latitude !==
-                              null &&
+                            null &&
                             item.location
                               ?.latitude !==
-                              undefined &&
+                            undefined &&
                             item.location
                               ?.longitude !==
-                              null &&
+                            null &&
                             item.location
                               ?.longitude !==
-                              undefined && (
+                            undefined && (
 
                               <p className="flex items-center gap-1">
 
@@ -1468,8 +1432,8 @@ export default function Imagery() {
                                 ? "Analyzing..."
                                 : item.processingStatus ===
                                   "FAILED"
-                                ? "Retry AI Analysis"
-                                : "Run AI Analysis"
+                                  ? "Retry AI Analysis"
+                                  : "Run AI Analysis"
                             }
 
                           </button>
@@ -1495,15 +1459,15 @@ export default function Imagery() {
                         {item.processingStatus ===
                           "ANALYZED" && (
 
-                          <div className="flex items-center justify-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 py-2.5 text-xs font-semibold text-emerald-500">
+                            <div className="flex items-center justify-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 py-2.5 text-xs font-semibold text-emerald-500">
 
-                            <CheckCircle2 className="w-4 h-4" />
+                              <CheckCircle2 className="w-4 h-4" />
 
-                            AI analysis completed
+                              AI analysis completed
 
-                          </div>
+                            </div>
 
-                        )}
+                          )}
 
                       </div>
 

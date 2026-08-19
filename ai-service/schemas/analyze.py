@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -36,9 +36,26 @@ class RawDetection(BaseModel):
 
 
 class Finding(BaseModel):
-    type: str
+    type: Literal[
+        "BUILDING_DAMAGE",
+        "ROAD_BLOCKAGE",
+        "INFRASTRUCTURE_DAMAGE",
+        "SERVICE_DISRUPTION",
+    ]
 
-    severity: str | None = None
+    severity: (
+        Literal[
+            "LOW",
+            "MODERATE",
+            "SEVERE",
+            "CRITICAL",
+        ]
+        | None
+    ) = None
+
+    title: str | None = None
+
+    description: str | None = None
 
     confidence: float = Field(
         ge=0.0,
@@ -59,7 +76,10 @@ class Finding(BaseModel):
 
     bbox: list[float] | None = None
 
-    prediction: dict[str, Any]
+    prediction: dict[
+        str,
+        Any,
+    ]
 
 
 class AnalyzeResponse(BaseModel):
@@ -71,7 +91,10 @@ class AnalyzeResponse(BaseModel):
         alias="imageId"
     )
 
-    analysis_type: str = Field(
+    analysis_type: Literal[
+        "GENERIC_OBJECT_DETECTION",
+        "DISASTER_DAMAGE_ASSESSMENT",
+    ] = Field(
         alias="analysisType"
     )
 
@@ -82,6 +105,10 @@ class AnalyzeResponse(BaseModel):
         ge=0,
     )
 
-    detections: list[RawDetection]
+    detections: list[
+        RawDetection
+    ]
 
-    findings: list[Finding]
+    findings: list[
+        Finding
+    ]

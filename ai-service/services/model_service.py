@@ -28,10 +28,10 @@ def convert_detections(
 ):
     detections = []
 
-    if (
-        result.boxes is None
-    ):
+
+    if result.boxes is None:
         return detections
+
 
     for (
         box,
@@ -42,18 +42,23 @@ def convert_detections(
         result.boxes.conf,
         result.boxes.cls,
     ):
+
         class_id_value = int(
             class_id
         )
+
 
         confidence_value = float(
             confidence
         )
 
+
         coordinates = [
             float(value)
-            for value in box
+            for value
+            in box
         ]
+
 
         class_name = (
             result.names[
@@ -61,23 +66,23 @@ def convert_detections(
             ]
         )
 
-        detections.append(
-            {
-                "classId":
-                    class_id_value,
 
-                "className":
-                    class_name,
+        detections.append({
+            "classId":
+                class_id_value,
 
-                "confidence":
-                    round(
-                        confidence_value,
-                        4,
-                    ),
+            "className":
+                class_name,
 
-                "bbox":
-                    coordinates,
-            }
-        )
+            "confidence":
+                round(
+                    confidence_value,
+                    4,
+                ),
+
+            "bbox":
+                coordinates,
+        })
+
 
     return detections

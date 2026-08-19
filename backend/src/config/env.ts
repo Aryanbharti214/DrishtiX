@@ -19,7 +19,7 @@ const envSchema = z.object({
   AI_SERVICE_URL: z
     .string()
     .url("AI_SERVICE_URL must be a valid URL"),
-
+ 
   CORS_ORIGIN: z
     .string()
     .default("http://localhost:5173"),

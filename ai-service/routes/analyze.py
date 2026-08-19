@@ -1,7 +1,18 @@
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
 
-from schemas.analyze import AnalyzeResponse
-from services.analyze_service import analyze_image
+from schemas.analyze import (
+    AnalyzeResponse,
+)
+
+from services.analyze_service import (
+    analyze_image,
+)
 
 
 router = APIRouter(
@@ -19,12 +30,10 @@ async def analyze(
     imageId: str = Form(...),
 ):
     try:
-        result = await analyze_image(
+        return await analyze_image(
             image=image,
             image_id=imageId,
         )
-
-        return result
 
     except ValueError as error:
         raise HTTPException(

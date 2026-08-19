@@ -36,10 +36,12 @@ import {
 export async function analyzeImageryService(
   imageryId: string
 ) {
-
   /*
-   * 1. Load imagery record
-   */
+  |--------------------------------------------------------------------------
+  | 1. Load imagery
+  |--------------------------------------------------------------------------
+  */
+
   const imagery =
     await getImageryByIdService(
       imageryId
@@ -47,9 +49,11 @@ export async function analyzeImageryService(
 
 
   /*
-   * 2. Prevent duplicate/concurrent
-   * analysis.
-   */
+  |--------------------------------------------------------------------------
+  | 2. Prevent invalid duplicate execution
+  |--------------------------------------------------------------------------
+  */
+
   if (
     imagery.processingStatus ===
       "QUEUED" ||
@@ -77,17 +81,16 @@ export async function analyzeImageryService(
 
 
   /*
-   * FAILED imagery is allowed
-   * to retry.
+   * FAILED imagery can be retried.
    */
 
 
   /*
-   * 3. Build actual stored-file path.
-   *
-   * Multer stores files in:
-   * backend/uploads/
-   */
+  |--------------------------------------------------------------------------
+  | 3. Resolve stored image
+  |--------------------------------------------------------------------------
+  */
+
   const imagePath =
     path.resolve(
       "uploads",
@@ -95,9 +98,6 @@ export async function analyzeImageryService(
     );
 
 
-  /*
-   * 4. Ensure file still exists.
-   */
   try {
     await fs.access(
       imagePath
@@ -112,8 +112,11 @@ export async function analyzeImageryService(
 
 
   /*
-   * 5. Create AI run.
-   */
+  |--------------------------------------------------------------------------
+  | 4. Create AI run
+  |--------------------------------------------------------------------------
+  */
+
   const aiRun =
     await createAIRun(
       imagery.id
@@ -121,20 +124,12 @@ export async function analyzeImageryService(
 
 
   try {
-
     /*
-     * 6. Queue operation.
-     */
-    await updateImageryStatus(
-      imagery.id,
-      "QUEUED"
-    );
+    |--------------------------------------------------------------------------
+    | 5. Processing state
+    |--------------------------------------------------------------------------
+    */
 
-
-    /*
-     * 7. Mark run + imagery
-     * as processing.
-     */
     await markAIRunProcessing(
       aiRun.id
     );
@@ -147,9 +142,11 @@ export async function analyzeImageryService(
 
 
     /*
-     * 8. Send stored image
-     * to FastAPI.
-     */
+    |--------------------------------------------------------------------------
+    | 6. Send image to FastAPI
+    |--------------------------------------------------------------------------
+    */
+
     let aiResponse:
       unknown;
 
@@ -168,8 +165,8 @@ export async function analyzeImageryService(
           mimeType:
             imagery.mimeType,
         });
-    } catch (error) {
 
+    } catch (error) {
       const message =
         error instanceof Error
           ? error.message
@@ -185,9 +182,11 @@ export async function analyzeImageryService(
 
 
     /*
-     * 9. Validate response
-     * from FastAPI.
-     */
+    |--------------------------------------------------------------------------
+    | 7. Validate AI contract
+    |--------------------------------------------------------------------------
+    */
+
     const parsed =
       aiAnalysisResponseSchema
         .safeParse(
@@ -196,7 +195,6 @@ export async function analyzeImageryService(
 
 
     if (!parsed.success) {
-
       console.error(
         "Invalid AI response:",
         parsed.error.flatten()
@@ -216,9 +214,11 @@ export async function analyzeImageryService(
 
 
     /*
-     * 10. Ensure FastAPI analyzed
-     * the same imagery.
-     */
+    |--------------------------------------------------------------------------
+    | 8. Verify imagery identity
+    |--------------------------------------------------------------------------
+    */
+
     if (
       result.imageId !==
       imagery.id
@@ -232,17 +232,19 @@ export async function analyzeImageryService(
 
 
     /*
-     * 11. Persist real
-     * disaster-domain findings.
-     *
-     * Generic YOLO currently
-     * returns [] here.
-     */
+    |--------------------------------------------------------------------------
+    | 9. Persist domain findings
+    |--------------------------------------------------------------------------
+    |
+    | Generic YOLO currently produces raw detections,
+    | therefore findings may legitimately be [].
+    |
+    */
+
     for (
       const finding
       of result.findings
     ) {
-
       await createFinding({
         disasterId:
           imagery.disasterId,
@@ -259,11 +261,11 @@ export async function analyzeImageryService(
 
 
     /*
-     * 12. Complete AI run.
-     *
-     * DB column is currently INTEGER,
-     * therefore round milliseconds.
-     */
+    |--------------------------------------------------------------------------
+    | 10. Complete AI run
+    |--------------------------------------------------------------------------
+    */
+
     await completeAIRun(
       aiRun.id,
       {
@@ -285,8 +287,11 @@ export async function analyzeImageryService(
 
 
     /*
-     * 13. Mark image analyzed.
-     */
+    |--------------------------------------------------------------------------
+    | 11. Mark imagery analyzed
+    |--------------------------------------------------------------------------
+    */
+
     const updatedImagery =
       await updateImageryStatus(
         imagery.id,
@@ -295,9 +300,11 @@ export async function analyzeImageryService(
 
 
     /*
-     * 14. Return useful result
-     * to frontend.
-     */
+    |--------------------------------------------------------------------------
+    | 12. Return result directly to React
+    |--------------------------------------------------------------------------
+    */
+
     return {
       imagery:
         updatedImagery,
@@ -305,24 +312,17 @@ export async function analyzeImageryService(
       aiRunId:
         aiRun.id,
 
-      findingsCreated:
-        result.findings.length,
-
       detectionCount:
         result.detections.length,
+
+      findingsCreated:
+        result.findings.length,
 
       analysis:
         result,
     };
 
   } catch (error) {
-
-    /*
-     * Mark run and imagery
-     * failed if anything after
-     * AI-run creation fails.
-     */
-
     const message =
       error instanceof Error
         ? error.message
