@@ -1,7 +1,10 @@
 import {
   Router,
 } from "express";
-
+import {
+  correlateFindingController,
+  getFindingRelationsController,
+} from "./finding-correlation.controller.js";
 
 import {
   createManualFindingController,
@@ -51,7 +54,22 @@ findingRouter.get(
   "/:id/verifications",
   getFindingVerificationHistoryController
 );
+/*
+|--------------------------------------------------------------------------
+| Spatial evidence correlation
+|--------------------------------------------------------------------------
+*/
 
+findingRouter.post(
+  "/:id/correlate",
+  correlateFindingController
+);
+
+
+findingRouter.get(
+  "/:id/relations",
+  getFindingRelationsController
+);
 
 findingRouter.get(
   "/:id",
