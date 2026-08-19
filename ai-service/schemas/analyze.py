@@ -24,11 +24,8 @@ class Finding(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
-
     model_name: str
-
     model_version: str
-
     processing_time_ms: float
-
+    result_image: str
     findings: list[Finding]

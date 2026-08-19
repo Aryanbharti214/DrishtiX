@@ -159,3 +159,78 @@ def convert_segmentation_to_findings(result):
         )
 
     return findings
+
+def generate_segmentation_overlay(
+    result,
+    original_image_path: Path,
+    output_path: Path,
+):
+    """
+    Generate a colored semantic-segmentation overlay
+    from the model prediction.
+    """
+
+    import cv2
+
+    semantic_mask = (
+        result.semantic_mask.data
+        .cpu()
+        .numpy()
+    )
+
+    semantic_mask = np.squeeze(
+        semantic_mask
+    )
+
+    image = cv2.imread(
+        str(original_image_path)
+    )
+
+    if image is None:
+        raise ValueError(
+            "Could not read original image for overlay."
+        )
+
+    height, width = image.shape[:2]
+
+    mask = cv2.resize(
+        semantic_mask.astype(np.uint8),
+        (width, height),
+        interpolation=cv2.INTER_NEAREST,
+    )
+
+    colors = np.array(
+        [
+            [0, 0, 0],        # Background
+            [255, 0, 0],      # Building flooded
+            [0, 255, 0],      # Building non-flooded
+            [255, 100, 0],    # Road flooded
+            [100, 100, 100],  # Road non-flooded
+            [0, 0, 255],      # Water
+            [0, 255, 255],    # Tree
+            [255, 0, 255],    # Vehicle
+            [255, 255, 0],    # Pool
+            [0, 180, 0],      # Grass
+        ],
+        dtype=np.uint8,
+    )
+
+    colored_mask = colors[mask]
+
+    overlay = cv2.addWeighted(
+        image,
+        0.55,
+        colored_mask,
+        0.45,
+        0,
+    )
+
+    success = cv2.imwrite(
+        str(output_path),
+        overlay,
+    )
+
+    if not success:
+        raise ValueError(
+            "Failed to save segmentation overlay."
+        )
