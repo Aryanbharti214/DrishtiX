@@ -83,14 +83,14 @@ POST /api/v1/analyze
 Multipart fields:
 
 - `image`: JPEG, PNG, or WebP
-- `imageId`: caller-provided imagery identifier
+- `imageId`: valid imagery UUID
 
 Example:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/analyze \
   -F "image=@/absolute/path/to/image.jpg" \
-  -F "imageId=test-image-001"
+  -F "imageId=2a3b0adc-1418-4f35-ba81-e710fdd4b786"
 ```
 
 ## Validation contract
@@ -105,7 +105,7 @@ The AI response contains:
 - `detections[]`
 - `findings[]`
 
-The Express backend validates this response again with Zod before it is persisted.
+Bounding boxes are validated as exactly four numeric coordinates. The Express backend validates the complete response again with Zod before it is persisted.
 
 ## Important design rule
 
