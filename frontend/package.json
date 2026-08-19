@@ -1,17 +1,19 @@
 {
-  "name": "drishtix-frontend",
-  "version": "0.1.0",
+  "name": "drishtix",
+  "version": "0.0.0",
   "private": true,
   "description": "DrishtiX disaster intelligence frontend",
+  "homepage": "https://github.com/Aryanbharti214/DrishtiX#readme",
+  "bugs": {
+    "url": "https://github.com/Aryanbharti214/DrishtiX/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Aryanbharti214/DrishtiX.git"
   },
-  "bugs": {
-    "url": "https://github.com/Aryanbharti214/DrishtiX/issues"
-  },
-  "license": "UNLICENSED",
+  "license": "ISC",
   "type": "module",
+  "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
