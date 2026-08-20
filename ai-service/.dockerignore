@@ -1,0 +1,14 @@
+
+.venv
+__pycache__
+*.pyc
+.env
+.env.*
+uploads
+processed
+temp
+debug_output
+runs
+drishtix_runs
+datasets
+.DS_Store

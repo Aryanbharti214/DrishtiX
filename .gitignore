@@ -33,3 +33,4 @@ ai-service/datasets/
 
 # Logs
 *.log
+deploy.env
