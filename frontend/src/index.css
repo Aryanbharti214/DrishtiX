@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
-/* 🌙 Tactical Dark Command Mode (Direct match to Login screen) */
+
+@theme {
+  --font-sans:
+    "Inter",
+    sans-serif;
+
+  --font-mono:
+    "JetBrains Mono",
+    monospace;
+}
 :root,
 html.dark {
   /* Surface Layers */
