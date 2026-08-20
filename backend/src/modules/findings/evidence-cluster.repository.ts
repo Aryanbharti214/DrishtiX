@@ -17,27 +17,27 @@ interface FindingRow {
   finding_type: string;
 
   severity:
-    string | null;
+  string | null;
 
   source: string;
 
   verification_status:
-    string;
+  string;
 
   title:
-    string | null;
+  string | null;
 
   description:
-    string | null;
+  string | null;
 
   latitude:
-    number | null;
+  number | null;
 
   longitude:
-    number | null;
+  number | null;
 
   created_at:
-    Date;
+  Date;
 }
 
 
@@ -51,10 +51,10 @@ interface RelationRow {
   relation_type: string;
 
   distance_meters:
-    number | string;
+  number | string;
 
   score:
-    number | string;
+  number | string;
 }
 
 
@@ -69,38 +69,36 @@ export async function findClusterFindingsByDisaster(
       FindingRow
     >(
       `
-        SELECT
-          id,
-          disaster_id,
-          finding_type,
-          severity,
-          source,
-          verification_status,
-          title,
-          description,
-          latitude,
-          longitude,
-          created_at
+      SELECT
+        id,
+        disaster_id,
+        finding_type,
+        severity,
+        source,
+        verification_status,
+        title,
+        description,
+        latitude,
+        longitude,
+        created_at
 
-        FROM findings
+      FROM findings
 
-        WHERE
-          disaster_id = $1
+      WHERE
+        disaster_id = $1
 
-          AND location
-              IS NOT NULL
+        AND location
+            IS NOT NULL
 
-          AND source <> 'FUSION'
+        AND source <> 'FUSION'
 
-        ORDER BY
-          created_at ASC
-      `,
+      ORDER BY
+        created_at ASC
+    `,
       [
         disasterId,
       ]
     );
-
-
   return result.rows.map(
     (row) => ({
       id:
