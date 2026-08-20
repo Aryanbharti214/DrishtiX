@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-
+import {
+  refreshFindingCorrelationBestEffort,
+} from "../findings/finding-correlation.service.js";
 import {
   analyzeImageWithAI,
 } from "../../integrations/ai/ai.client.js";
@@ -36,11 +38,7 @@ import {
 export async function analyzeImageryService(
   imageryId: string
 ) {
-  /*
-  |--------------------------------------------------------------------------
-  | 1. Load imagery
-  |--------------------------------------------------------------------------
-  */
+ 
 
   const imagery =
     await getImageryByIdService(
@@ -48,17 +46,13 @@ export async function analyzeImageryService(
     );
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | 2. Prevent invalid duplicate execution
-  |--------------------------------------------------------------------------
-  */
+ 
 
   if (
     imagery.processingStatus ===
-      "QUEUED" ||
+    "QUEUED" ||
     imagery.processingStatus ===
-      "PROCESSING"
+    "PROCESSING"
   ) {
     throw new AppError(
       409,
@@ -80,16 +74,6 @@ export async function analyzeImageryService(
   }
 
 
-  /*
-   * FAILED imagery can be retried.
-   */
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | 3. Resolve stored image
-  |--------------------------------------------------------------------------
-  */
 
   const imagePath =
     path.resolve(
@@ -111,12 +95,7 @@ export async function analyzeImageryService(
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | 4. Create AI run
-  |--------------------------------------------------------------------------
-  */
-
+ 
   const aiRun =
     await createAIRun(
       imagery.id
@@ -124,11 +103,7 @@ export async function analyzeImageryService(
 
 
   try {
-    /*
-    |--------------------------------------------------------------------------
-    | 5. Processing state
-    |--------------------------------------------------------------------------
-    */
+   
 
     await markAIRunProcessing(
       aiRun.id
@@ -141,11 +116,7 @@ export async function analyzeImageryService(
     );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 6. Send image to FastAPI
-    |--------------------------------------------------------------------------
-    */
+  
 
     let aiResponse:
       unknown;
@@ -181,11 +152,7 @@ export async function analyzeImageryService(
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 7. Validate AI contract
-    |--------------------------------------------------------------------------
-    */
+   
 
     const parsed =
       aiAnalysisResponseSchema
@@ -213,12 +180,7 @@ export async function analyzeImageryService(
       parsed.data;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 8. Verify imagery identity
-    |--------------------------------------------------------------------------
-    */
-
+  
     if (
       result.imageId !==
       imagery.id
@@ -231,40 +193,36 @@ export async function analyzeImageryService(
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 9. Persist domain findings
-    |--------------------------------------------------------------------------
-    |
-    | Generic YOLO currently produces raw detections,
-    | therefore findings may legitimately be [].
-    |
-    */
+  
 
     for (
       const finding
       of result.findings
     ) {
-      await createFinding({
-        disasterId:
-          imagery.disasterId,
 
-        imageryId:
-          imagery.id,
+      const createdFinding =
+        await createFinding({
+          disasterId:
+            imagery.disasterId,
 
-        aiRunId:
-          aiRun.id,
+          imageryId:
+            imagery.id,
 
-        finding,
-      });
+          aiRunId:
+            aiRun.id,
+
+          finding,
+        });
+
+
+      await refreshFindingCorrelationBestEffort(
+        createdFinding.id
+      );
+
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 10. Complete AI run
-    |--------------------------------------------------------------------------
-    */
+    
 
     await completeAIRun(
       aiRun.id,
@@ -286,11 +244,7 @@ export async function analyzeImageryService(
     );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 11. Mark imagery analyzed
-    |--------------------------------------------------------------------------
-    */
+   
 
     const updatedImagery =
       await updateImageryStatus(
@@ -299,12 +253,7 @@ export async function analyzeImageryService(
       );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 12. Return result directly to React
-    |--------------------------------------------------------------------------
-    */
-
+   
     return {
       imagery:
         updatedImagery,

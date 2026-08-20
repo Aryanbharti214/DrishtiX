@@ -1,7 +1,9 @@
 import {
   AppError,
 } from "../../utils/app-error.js";
-
+import {
+  refreshFindingCorrelationBestEffort,
+} from "./finding-correlation.service.js";
 
 import {
   findDisasterById,
@@ -132,7 +134,16 @@ export async function createManualFindingService(
   }
 
 
-  return createManualFinding(
+  const finding =
+  await createManualFinding(
     input
   );
+
+
+await refreshFindingCorrelationBestEffort(
+  finding.id
+);
+
+
+return finding;
 }

@@ -1,188 +1,932 @@
-import {
-  useDisaster
-} from "../context/DisasterContext";
-import React, { useState } from 'react';
-import StatCard from '../components/StatCard';
-import PriorityCard from '../components/PriorityCard';
-import { mockDashboardStats, mockPriorities } from '../data/mockData';
-import {
-  Image,
-  AlertOctagon,
-  Navigation,
-  CheckCircle2,
-  ShieldAlert,
-  ArrowUpRight,
-  Crosshair,
-  Scan,
-  Radio
-} from 'lucide-react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-export default function Dashboard({ setActiveTab }) {
+import {
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  CheckCircle2,
+  GitMerge,
+  Image,
+  MapPinned,
+  RefreshCw,
+  ShieldAlert,
+  Target,
+  TriangleAlert,
+} from "lucide-react";
+
+import {
+  getDisasterFindings,
+  getDisasterImagery,
+  getDisasterPriorities,
+  getEvidenceClusters,
+  getFusionRecommendations,
+} from "../services/api";
+
+import {
+  useDisaster,
+} from "../context/DisasterContext";
+
+import StatCard
+  from "../components/StatCard";
+
+
+function pretty(
+  value
+) {
+  return (
+    value
+      ?.replaceAll(
+        "_",
+        " "
+      ) ??
+    "UNKNOWN"
+  );
+}
+
+
+function priorityStyle(
+  level
+) {
+
+  switch (
+    level
+  ) {
+
+    case "CRITICAL":
+      return (
+        "border-red-500/30 bg-red-500/10 text-red-500"
+      );
+
+
+    case "HIGH":
+      return (
+        "border-orange-500/30 bg-orange-500/10 text-orange-500"
+      );
+
+
+    case "MEDIUM":
+      return (
+        "border-amber-500/30 bg-amber-500/10 text-amber-500"
+      );
+
+
+    default:
+      return (
+        "border-sky-500/30 bg-sky-500/10 text-sky-500"
+      );
+
+  }
+}
+
+
+export default function Dashboard({
+  setActiveTab,
+}) {
+
   const {
-    currentDisaster
+    currentDisaster,
   } = useDisaster();
-  const [radarScanning, setRadarScanning] = useState(true);
+
+
+  const [
+    imagery,
+    setImagery,
+  ] = useState([]);
+
+
+  const [
+    findings,
+    setFindings,
+  ] = useState([]);
+
+
+  const [
+    clusters,
+    setClusters,
+  ] = useState([]);
+
+
+  const [
+    fusionRecommendations,
+    setFusionRecommendations,
+  ] = useState([]);
+
+
+  const [
+    priorities,
+    setPriorities,
+  ] = useState([]);
+
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+
+  const loadDashboard =
+    useCallback(
+      async () => {
+
+        if (
+          !currentDisaster?.id
+        ) {
+
+          setImagery(
+            []
+          );
+
+          setFindings(
+            []
+          );
+
+          setClusters(
+            []
+          );
+
+          setFusionRecommendations(
+            []
+          );
+
+          setPriorities(
+            []
+          );
+
+          return;
+        }
+
+
+        try {
+
+          setLoading(
+            true
+          );
+
+
+          setError(
+            ""
+          );
+
+
+          const [
+            imageryResponse,
+            findingsResponse,
+            clustersResponse,
+            fusionResponse,
+            prioritiesResponse,
+          ] =
+            await Promise.all([
+              getDisasterImagery(
+                currentDisaster.id
+              ),
+
+              getDisasterFindings(
+                currentDisaster.id
+              ),
+
+              getEvidenceClusters(
+                currentDisaster.id
+              ),
+
+              getFusionRecommendations(
+                currentDisaster.id
+              ),
+
+              getDisasterPriorities(
+                currentDisaster.id
+              ),
+            ]);
+
+
+          setImagery(
+            imageryResponse
+              ?.data
+              ?.imagery ??
+            []
+          );
+
+
+          setFindings(
+            findingsResponse
+              ?.data
+              ?.findings ??
+            []
+          );
+
+
+          setClusters(
+            clustersResponse
+              ?.data
+              ?.clusters ??
+            []
+          );
+
+
+          setFusionRecommendations(
+            fusionResponse
+              ?.data
+              ?.recommendations ??
+            []
+          );
+
+
+          setPriorities(
+            prioritiesResponse
+              ?.data
+              ?.priorities ??
+            []
+          );
+
+        } catch (err) {
+
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load operational dashboard"
+          );
+
+        } finally {
+
+          setLoading(
+            false
+          );
+
+        }
+
+      },
+      [
+        currentDisaster?.id,
+      ]
+    );
+
+
+  useEffect(() => {
+
+    void loadDashboard();
+
+  }, [
+    loadDashboard,
+  ]);
+
+
+  const metrics =
+    useMemo(
+      () => {
+
+        const activeFindings =
+          findings.filter(
+            (finding) =>
+              finding
+                .verificationStatus !==
+              "REJECTED"
+          );
+
+
+        return {
+          analyzedImagery:
+            imagery.filter(
+              (item) =>
+                item.processingStatus ===
+                "ANALYZED"
+            ).length,
+
+          activeFindings:
+            activeFindings.length,
+
+          pendingVerification:
+            activeFindings.filter(
+              (finding) =>
+                finding
+                  .verificationStatus ===
+                "PENDING"
+            ).length,
+
+          corroboratedClusters:
+            clusters.filter(
+              (cluster) =>
+                cluster.state ===
+                "CORROBORATED"
+            ).length,
+
+          disputedClusters:
+            clusters.filter(
+              (cluster) =>
+                cluster.state ===
+                "DISPUTED"
+            ).length,
+
+          pendingFusion:
+            fusionRecommendations.filter(
+              (recommendation) =>
+                recommendation.status ===
+                "PENDING"
+            ).length,
+
+          approvedFusion:
+            fusionRecommendations.filter(
+              (recommendation) =>
+                recommendation.status ===
+                "APPROVED"
+            ).length,
+
+          criticalPriorities:
+            priorities.filter(
+              (priority) =>
+                priority.priorityLevel ===
+                "CRITICAL"
+            ).length,
+        };
+
+      },
+      [
+        imagery,
+        findings,
+        clusters,
+        fusionRecommendations,
+        priorities,
+      ]
+    );
+
+
+  const topPriorities =
+    useMemo(
+      () =>
+        priorities.slice(
+          0,
+          3
+        ),
+      [
+        priorities,
+      ]
+    );
+
+
+  if (
+    !currentDisaster
+  ) {
+
+    return (
+      <div className="theme-card rounded-xl border border-[var(--border-color)] p-10 text-center">
+
+        <TriangleAlert className="w-9 h-9 mx-auto text-amber-500" />
+
+        <h2 className="font-bold text-lg text-[var(--text-primary)] mt-3">
+          No disaster selected
+        </h2>
+
+        <p className="text-sm text-[var(--text-secondary)] mt-1">
+          Select or create a disaster event to view live operational intelligence.
+        </p>
+
+      </div>
+    );
+
+  }
+
 
   return (
     <div className="space-y-6">
-      {/* Top Banner Alert (GovTech Incident Banner matching login notice styling) */}
-      <div className="theme-card p-4 rounded-xl flex flex-wrap justify-between items-center gap-4 shadow-sm border-l-4 border-l-amber-500 bg-[var(--bg-card)]">
-        <div className="flex items-center space-x-3.5">
-          <div className="p-2.5 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-600 dark:text-amber-400">
-            <ShieldAlert className="w-5 h-5 animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="font-extrabold text-sm tracking-wide font-mono text-[var(--text-primary)]">
-                {currentDisaster?.name?.toUpperCase()
-                  ?? "NO DISASTER SELECTED"}
-              </h3>
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                DEFCON 2 ACTIVE
-              </span>
+
+
+      {/* HEADER */}
+
+      <div className="theme-card rounded-xl border border-[var(--border-color)] border-l-4 border-l-amber-500 p-5">
+
+        <div className="flex flex-wrap justify-between items-center gap-4">
+
+          <div className="flex items-center gap-3">
+
+            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25">
+
+              <ShieldAlert className="w-5 h-5 text-amber-500" />
+
             </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              AI neural models and telemetry streams active. Responder verification required for priority dispatch.
-            </p>
-          </div>
-        </div>
 
-        <button
-          onClick={() => setActiveTab('priorities')}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-all shadow-sm flex items-center space-x-2 font-mono cursor-pointer"
-        >
-          <span>PRIORITY QUEUE</span>
-          <ArrowUpRight className="w-4 h-4" />
-        </button>
-      </div>
 
-      {/* Metric Cards Grid (Standardized SIH Overview Metrics) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Drone Images Analyzed"
-          value={mockDashboardStats.totalImages}
-          icon={Image}
-          badgeColor="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-          borderColor="border-[var(--border-color)]"
-        />
-        <StatCard
-          label="Damaged Structures"
-          value={mockDashboardStats.damagedBuildings}
-          icon={AlertOctagon}
-          badgeColor="bg-red-500/10 text-red-600 dark:text-red-400"
-          borderColor="border-[var(--border-color)]"
-        />
-        <StatCard
-          label="Blocked Supply Routes"
-          value={mockDashboardStats.blockedRoutes}
-          icon={Navigation}
-          badgeColor="bg-amber-500/10 text-amber-600 dark:text-amber-400"
-          borderColor="border-[var(--border-color)]"
-        />
-        <StatCard
-          label="Pending Verification"
-          value={mockDashboardStats.pendingVerification}
-          icon={CheckCircle2}
-          badgeColor="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          borderColor="border-[var(--border-color)]"
-        />
-      </div>
-
-      {/* Geospatial Radar HUD + Priority Queue */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Interactive Radar Visualizer */}
-        <div className="lg:col-span-2 theme-card rounded-xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex justify-between items-center mb-4">
             <div>
-              <div className="flex items-center space-x-2 font-mono">
-                <Crosshair className="w-4 h-4 text-blue-500 dark:text-blue-400 animate-spin" />
-                <h3 className="font-extrabold text-sm uppercase tracking-wide text-[var(--text-primary)]">
-                  Interactive Geospatial Radar HUD
-                </h3>
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                Operational overview for {
-                  currentDisaster?.regionName
-                  ?? "selected region"
+
+              <p className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-muted)]">
+                Active Operational Event
+              </p>
+
+
+              <h2 className="text-lg font-black text-[var(--text-primary)] mt-1">
+                {
+                  currentDisaster.name
+                }
+              </h2>
+
+
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                {
+                  currentDisaster.regionName ??
+                  "Region not specified"
                 }
               </p>
+
             </div>
 
+          </div>
+
+
+          <div className="flex gap-2">
+
             <button
-              onClick={() => setActiveTab('map')}
-              className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-mono font-semibold text-xs shadow-sm transition-all flex items-center space-x-1.5 cursor-pointer"
+              type="button"
+              onClick={
+                () =>
+                  void loadDashboard()
+              }
+              disabled={
+                loading
+              }
+              className="px-3 py-2 rounded-lg border border-[var(--border-color)] flex items-center gap-2 text-xs font-semibold disabled:opacity-50"
             >
-              <span>TACTICAL MAP</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
 
-          {/* Radar HUD Screen */}
-          <div
-            onClick={() => setActiveTab('map')}
-            className="w-full h-80 rounded-lg relative flex items-center justify-center overflow-hidden border border-[var(--border-color)] group cursor-pointer bg-[var(--bg-main)]"
-          >
-            {/* Concentric Radar Rings */}
-            <div className="absolute w-64 h-64 border border-blue-500/20 rounded-full"></div>
-            <div className="absolute w-44 h-44 border border-blue-500/25 rounded-full"></div>
-            <div className="absolute w-24 h-24 border border-blue-500/30 rounded-full"></div>
-            <div className="absolute w-full h-[1px] bg-blue-500/15"></div>
-            <div className="absolute h-full w-[1px] bg-blue-500/15"></div>
-
-            {/* Rotating Radar Sweep Line */}
-            <div className="absolute w-64 h-64 rounded-full bg-gradient-to-tr from-blue-500/15 via-transparent to-transparent animate-radar pointer-events-none"></div>
-
-            {/* Target Hotspots */}
-            <div className="absolute top-[30%] left-[65%] w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
-            <div className="absolute top-[30%] left-[65%] w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-sm"></div>
-
-            <div className="absolute top-[60%] left-[35%] w-3 h-3 bg-amber-500 rounded-full animate-ping"></div>
-            <div className="absolute top-[60%] left-[35%] w-3 h-3 bg-amber-500 rounded-full border-2 border-white shadow-sm"></div>
-
-            {/* Center Overlay Tag */}
-            <div className="z-10 bg-[var(--bg-card)]/90 backdrop-blur-md px-4 py-2.5 rounded-lg border border-[var(--border-color)] shadow-md group-hover:scale-105 transition-transform flex items-center space-x-3">
-              <Scan className="w-4 h-4 text-blue-500 dark:text-blue-400 animate-pulse" />
-              <div className="font-mono text-left">
-                <p className="text-xs font-bold text-[var(--text-primary)]">2 HOTSPOTS DETECTED IN SECTOR</p>
-                <p className="text-[10px] text-[var(--text-secondary)]">CLICK TO LAUNCH INTERACTIVE GEOSPATIAL MAP</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3.5 border-t border-[var(--border-color)] flex justify-between text-xs font-mono text-[var(--text-secondary)]">
-            <span>COORDINATES: 20.2961° N, 85.8245° E</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center space-x-1">
-              <Radio className="w-3 h-3 inline animate-pulse" />
-              <span>RADAR TELEMETRY LOCK: 100%</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Priority Queue Column */}
-        <div className="space-y-3.5">
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-sm text-[var(--text-primary)] uppercase tracking-wider font-mono">
-              Priority Queue
-            </h3>
-            <button
-              onClick={() => setActiveTab('priorities')}
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-            >
-              View All Queue →
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {mockPriorities.slice(0, 2).map((item) => (
-              <PriorityCard
-                key={item.id}
-                priority={item}
-                onViewEvidence={() => setActiveTab('evidence')}
+              <RefreshCw
+                className={`w-4 h-4 ${
+                  loading
+                    ? "animate-spin"
+                    : ""
+                }`}
               />
-            ))}
+
+              Refresh
+
+            </button>
+
+
+            <button
+              type="button"
+              onClick={
+                () =>
+                  setActiveTab?.(
+                    "priorities"
+                  )
+              }
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2"
+            >
+
+              Priority Queue
+
+              <ArrowUpRight className="w-4 h-4" />
+
+            </button>
+
           </div>
+
         </div>
+
       </div>
+
+
+      {
+        error &&
+        (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 p-3 text-sm">
+            {
+              error
+            }
+          </div>
+        )
+      }
+
+
+      {/* PRIMARY METRICS */}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+
+        <StatCard
+          label="Imagery Analyzed"
+          value={
+            metrics.analyzedImagery
+          }
+          icon={
+            Image
+          }
+          badgeColor="bg-blue-500/10 text-blue-500"
+          borderColor="border-l-blue-500"
+        />
+
+
+        <StatCard
+          label="Active Findings"
+          value={
+            metrics.activeFindings
+          }
+          icon={
+            AlertTriangle
+          }
+          badgeColor="bg-red-500/10 text-red-500"
+          borderColor="border-l-red-500"
+        />
+
+
+        <StatCard
+          label="Corroborated Clusters"
+          value={
+            metrics.corroboratedClusters
+          }
+          icon={
+            GitMerge
+          }
+          badgeColor="bg-emerald-500/10 text-emerald-500"
+          borderColor="border-l-emerald-500"
+        />
+
+
+        <StatCard
+          label="Pending Verification"
+          value={
+            metrics.pendingVerification
+          }
+          icon={
+            CheckCircle2
+          }
+          badgeColor="bg-amber-500/10 text-amber-500"
+          borderColor="border-l-amber-500"
+        />
+
+      </div>
+
+
+      {/* SECONDARY STATUS */}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+
+        <MiniMetric
+          label="Disputed Clusters"
+          value={
+            metrics.disputedClusters
+          }
+          warning
+        />
+
+
+        <MiniMetric
+          label="Fusion Pending Review"
+          value={
+            metrics.pendingFusion
+          }
+        />
+
+
+        <MiniMetric
+          label="Fusion Approved"
+          value={
+            metrics.approvedFusion
+          }
+        />
+
+
+        <MiniMetric
+          label="Critical Priorities"
+          value={
+            metrics.criticalPriorities
+          }
+          warning
+        />
+
+      </div>
+
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+
+        {/* EVIDENCE OVERVIEW */}
+
+        <div className="xl:col-span-2 theme-card rounded-xl border border-[var(--border-color)] p-5">
+
+          <div className="flex justify-between items-start gap-4">
+
+            <div>
+
+              <div className="flex items-center gap-2">
+
+                <MapPinned className="w-5 h-5 text-blue-500" />
+
+                <h3 className="font-extrabold text-[var(--text-primary)]">
+                  Evidence Intelligence Overview
+                </h3>
+
+              </div>
+
+
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Live evidence state derived from current findings and spatial relationships.
+              </p>
+
+            </div>
+
+
+            <button
+              type="button"
+              onClick={
+                () =>
+                  setActiveTab?.(
+                    "map"
+                  )
+              }
+              className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2"
+            >
+
+              Open Map
+
+              <ArrowUpRight className="w-3.5 h-3.5" />
+
+            </button>
+
+          </div>
+
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+
+            <ClusterMetric
+              label="Total Clusters"
+              value={
+                clusters.length
+              }
+            />
+
+
+            <ClusterMetric
+              label="Corroborated"
+              value={
+                metrics.corroboratedClusters
+              }
+            />
+
+
+            <ClusterMetric
+              label="Disputed"
+              value={
+                metrics.disputedClusters
+              }
+            />
+
+
+            <ClusterMetric
+              label="Fusion Pending"
+              value={
+                metrics.pendingFusion
+              }
+            />
+
+          </div>
+
+
+          <div className="mt-6 rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] p-4">
+
+            <div className="flex items-start gap-3">
+
+              <Activity className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+
+
+              <div>
+
+                <p className="text-sm font-bold text-[var(--text-primary)]">
+                  Human-in-the-loop operational intelligence
+                </p>
+
+
+                <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                  Spatial correlation, evidence clustering, fusion recommendations,
+                  and priority scores support responder review. They do not automatically
+                  verify evidence or dispatch resources.
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* TOP PRIORITIES */}
+
+        <div className="theme-card rounded-xl border border-[var(--border-color)] p-5">
+
+          <div className="flex justify-between items-center">
+
+            <div className="flex items-center gap-2">
+
+              <Target className="w-4 h-4 text-orange-500" />
+
+              <h3 className="font-bold text-sm text-[var(--text-primary)] uppercase tracking-wide">
+                Top Inspection Priorities
+              </h3>
+
+            </div>
+
+
+            <button
+              type="button"
+              onClick={
+                () =>
+                  setActiveTab?.(
+                    "priorities"
+                  )
+              }
+              className="text-xs text-blue-500 hover:underline"
+            >
+              View all
+            </button>
+
+          </div>
+
+
+          <div className="space-y-3 mt-4">
+
+            {
+              topPriorities.map(
+                (
+                  priority
+                ) => (
+                  <div
+                    key={
+                      priority.findingId
+                    }
+                    className="rounded-lg border border-[var(--border-color)] p-3"
+                  >
+
+                    <div className="flex justify-between gap-3">
+
+                      <div className="min-w-0">
+
+                        <div className="flex items-center gap-2">
+
+                          <span className="text-xs font-black text-[var(--text-muted)]">
+                            #
+                            {
+                              priority.rank
+                            }
+                          </span>
+
+
+                          <span
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded border ${priorityStyle(
+                              priority.priorityLevel
+                            )}`}
+                          >
+                            {
+                              priority.priorityLevel
+                            }
+                          </span>
+
+                        </div>
+
+
+                        <p className="text-sm font-bold text-[var(--text-primary)] mt-2 truncate">
+                          {
+                            priority.title ??
+                            pretty(
+                              priority.type
+                            )
+                          }
+                        </p>
+
+
+                        <p className="text-[10px] text-[var(--text-secondary)] mt-1">
+                          {
+                            pretty(
+                              priority.type
+                            )
+                          }
+
+                          {" · "}
+
+                          {
+                            priority.verificationStatus
+                          }
+                        </p>
+
+                      </div>
+
+
+                      <div className="text-right shrink-0">
+
+                        <p className="text-xl font-black text-orange-500">
+                          {
+                            priority.priorityScore
+                          }
+                        </p>
+
+                        <p className="text-[8px] uppercase text-[var(--text-muted)]">
+                          /100
+                        </p>
+
+                      </div>
+
+                    </div>
+
+
+                    {
+                      priority.reasons?.[0] &&
+                      (
+                        <p className="text-[10px] text-[var(--text-secondary)] mt-2">
+                          {
+                            priority.reasons[0]
+                          }
+                        </p>
+                      )
+                    }
+
+                  </div>
+                )
+              )
+            }
+
+
+            {
+              !loading &&
+              topPriorities.length ===
+                0 &&
+              (
+                <div className="text-center py-8 text-xs text-[var(--text-muted)]">
+                  No active priorities
+                </div>
+              )
+            }
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+
+function MiniMetric({
+  label,
+  value,
+  warning = false,
+}) {
+
+  return (
+    <div className="theme-card rounded-xl border border-[var(--border-color)] p-4">
+
+      <p className="text-[9px] uppercase tracking-widest font-bold text-[var(--text-muted)]">
+        {
+          label
+        }
+      </p>
+
+
+      <p
+        className={`text-2xl font-black mt-2 ${
+          warning &&
+          value > 0
+            ? "text-red-500"
+            : "text-[var(--text-primary)]"
+        }`}
+      >
+        {
+          value
+        }
+      </p>
+
+    </div>
+  );
+}
+
+
+function ClusterMetric({
+  label,
+  value,
+}) {
+
+  return (
+    <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
+
+      <p className="text-[9px] uppercase font-bold text-[var(--text-muted)]">
+        {
+          label
+        }
+      </p>
+
+
+      <p className="text-2xl font-black text-[var(--text-primary)] mt-2">
+        {
+          value
+        }
+      </p>
+
     </div>
   );
 }

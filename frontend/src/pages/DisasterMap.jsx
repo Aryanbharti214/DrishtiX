@@ -8,6 +8,7 @@ import React, {
 import {
   CircleMarker,
   MapContainer,
+  Polyline,
   Popup,
   TileLayer,
   useMap,
@@ -33,9 +34,20 @@ import {
 
 import {
   createManualFinding,
+  generateFusionRecommendation,
   getDisasterFindings,
+  getEvidenceClusters,
+  getFindingById,
+  getFindingRelations,
+  getFusionRecommendations,
+  reviewFusionRecommendation,
 } from "../services/api";
-
+import EvidenceIntelligencePanel
+  from "../components/EvidenceIntelligencePanel";
+import EvidenceClusterPanel
+  from "../components/EvidenceClusterPanel";
+import FusionRecommendationPanel
+  from "../components/FusionRecommendationPanel";
 import {
   useDisaster,
 } from "../context/DisasterContext";
@@ -247,6 +259,99 @@ export default function DisasterMap() {
     setSuccessMessage,
   ] = useState("");
 
+  /*
+  |--------------------------------------------------------------------------
+  | Evidence Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  const [
+    selectedFinding,
+    setSelectedFinding,
+  ] = useState(null);
+
+
+  const [
+    findingRelations,
+    setFindingRelations,
+  ] = useState([]);
+
+
+  const [
+    relationsLoading,
+    setRelationsLoading,
+  ] = useState(false);
+
+
+  const [
+    relationsError,
+    setRelationsError,
+  ] = useState("");
+  /*
+|--------------------------------------------------------------------------
+| Disaster Evidence Clusters
+|--------------------------------------------------------------------------
+*/
+
+const [
+  evidenceClusters,
+  setEvidenceClusters,
+] = useState([]);
+
+
+const [
+  clustersLoading,
+  setClustersLoading,
+] = useState(false);
+
+
+const [
+  clustersError,
+  setClustersError,
+] = useState("");
+
+
+const [
+  showClusterLayer,
+  setShowClusterLayer,
+] = useState(true);
+
+
+const [
+  selectedCluster,
+  setSelectedCluster,
+] = useState(null);
+
+
+/*
+|--------------------------------------------------------------------------
+| Fusion Recommendations
+|--------------------------------------------------------------------------
+*/
+
+const [
+  fusionRecommendations,
+  setFusionRecommendations,
+] = useState([]);
+
+
+const [
+  selectedFusionRecommendation,
+  setSelectedFusionRecommendation,
+] = useState(null);
+
+
+const [
+  fusionLoading,
+  setFusionLoading,
+] = useState(false);
+
+
+const [
+  fusionError,
+  setFusionError,
+] = useState("");
+
 
   /*
   |--------------------------------------------------------------------------
@@ -266,12 +371,7 @@ export default function DisasterMap() {
   ] = useState("ALL");
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Map report mode
-  |--------------------------------------------------------------------------
-  */
-
+ 
   const [
     reportMode,
     setReportMode,
@@ -298,11 +398,7 @@ export default function DisasterMap() {
   );
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Load real findings
-  |--------------------------------------------------------------------------
-  */
+  
 
   const loadFindings =
     useCallback(
@@ -350,17 +446,189 @@ export default function DisasterMap() {
       ]
     );
 
+const loadEvidenceClusters =
+  useCallback(
+    async () => {
 
+      if (
+        !currentDisaster?.id
+      ) {
+
+        setEvidenceClusters(
+          []
+        );
+
+        return;
+      }
+
+
+      try {
+
+        setClustersLoading(
+          true
+        );
+
+
+        setClustersError(
+          ""
+        );
+
+
+        const response =
+          await getEvidenceClusters(
+            currentDisaster.id
+          );
+
+
+        setEvidenceClusters(
+          response?.data
+            ?.clusters ??
+          []
+        );
+
+      } catch (err) {
+
+        setEvidenceClusters(
+          []
+        );
+
+
+        setClustersError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load evidence clusters"
+        );
+
+      } finally {
+
+        setClustersLoading(
+          false
+        );
+
+      }
+    },
+    [
+      currentDisaster?.id,
+    ]
+  );
+
+const loadFusionRecommendations =
+  useCallback(
+    async () => {
+
+      if (
+        !currentDisaster?.id
+      ) {
+
+        setFusionRecommendations(
+          []
+        );
+
+        return;
+      }
+
+
+      try {
+
+        setFusionError(
+          ""
+        );
+
+
+        const response =
+          await getFusionRecommendations(
+            currentDisaster.id
+          );
+
+
+        setFusionRecommendations(
+          response?.data
+            ?.recommendations ??
+          []
+        );
+
+      } catch (err) {
+
+        setFusionRecommendations(
+          []
+        );
+
+
+        setFusionError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load fusion recommendations"
+        );
+
+      }
+    },
+    [
+      currentDisaster?.id,
+    ]
+  );
   useEffect(() => {
     void loadFindings();
   }, [loadFindings]);
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Only geolocated findings can appear on the map
-  |--------------------------------------------------------------------------
-  */
+  useEffect(() => {
+    void loadEvidenceClusters();
+  }, [
+    loadEvidenceClusters,
+  ]);
+
+
+  useEffect(() => {
+    void loadFusionRecommendations();
+  }, [
+    loadFusionRecommendations,
+  ]);
+
+
+  useEffect(() => {
+
+    setSelectedFinding(
+      null
+    );
+
+    setFindingRelations(
+      []
+    );
+
+    setRelationsError(
+      ""
+    );
+
+    setSelectedCluster(
+      null
+    );
+
+    setEvidenceClusters(
+      []
+    );
+
+    setClustersError(
+      ""
+    );
+
+    setFusionRecommendations(
+      []
+    );
+
+    setSelectedFusionRecommendation(
+      null
+    );
+
+    setFusionError(
+      ""
+    );
+
+  }, [
+    currentDisaster?.id,
+  ]);
+
+
+  
 
   const geolocatedFindings =
     useMemo(
@@ -391,13 +659,6 @@ export default function DisasterMap() {
       ]
     );
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | Filtered map layer
-  |--------------------------------------------------------------------------
-  */
-
   const filteredFindings =
     useMemo(
       () =>
@@ -406,16 +667,16 @@ export default function DisasterMap() {
 
             const severityMatches =
               severityFilter ===
-                "ALL" ||
+              "ALL" ||
               finding.severity ===
-                severityFilter;
+              severityFilter;
 
 
             const sourceMatches =
               sourceFilter ===
-                "ALL" ||
+              "ALL" ||
               finding.source ===
-                sourceFilter;
+              sourceFilter;
 
 
             return (
@@ -430,13 +691,67 @@ export default function DisasterMap() {
         sourceFilter,
       ]
     );
+ 
+  const visibleEvidenceClusters =
+    useMemo(
+      () =>
+        evidenceClusters.filter(
+          (cluster) => {
+
+            if (
+              cluster
+                .activeEvidenceCount ===
+              0
+            ) {
+              return false;
+            }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Intelligence summary
-  |--------------------------------------------------------------------------
-  */
+            if (
+              cluster.memberCount === 1 &&
+              cluster.state ===
+                "ISOLATED"
+            ) {
+              return false;
+            }
+
+
+            return true;
+          }
+        ),
+      [
+        evidenceClusters,
+      ]
+    );
+
+
+  const selectedClusterFusionRecommendation =
+    useMemo(
+      () => {
+
+        if (
+          !selectedCluster
+        ) {
+          return null;
+        }
+
+
+        return (
+          fusionRecommendations.find(
+            (recommendation) =>
+              recommendation.clusterId ===
+              selectedCluster.clusterId
+          ) ??
+          null
+        );
+
+      },
+      [
+        fusionRecommendations,
+        selectedCluster,
+      ]
+    );
+
 
   const summary =
     useMemo(
@@ -497,13 +812,6 @@ export default function DisasterMap() {
       ]
     );
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | Map click
-  |--------------------------------------------------------------------------
-  */
-
   function handleLocationSelected({
     latitude,
     longitude,
@@ -536,11 +844,7 @@ export default function DisasterMap() {
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Form
-  |--------------------------------------------------------------------------
-  */
+  
 
   function handleChange(
     event
@@ -646,10 +950,6 @@ export default function DisasterMap() {
       }
 
 
-      /*
-       * Immediate map update.
-       */
-
       setFindings(
         (previous) => [
           finding,
@@ -657,6 +957,9 @@ export default function DisasterMap() {
         ]
       );
 
+
+      await loadEvidenceClusters();
+      await loadFusionRecommendations();
 
       setSuccessMessage(
         "Responder finding added to the live intelligence map."
@@ -680,12 +983,321 @@ export default function DisasterMap() {
     }
   }
 
+  const loadFindingRelations =
+    useCallback(
+      async (
+        finding
+      ) => {
 
-  /*
-  |--------------------------------------------------------------------------
-  | Helpers
-  |--------------------------------------------------------------------------
-  */
+        if (
+          !finding?.id
+        ) {
+          return;
+        }
+
+
+        try {
+
+          setSelectedCluster(
+            null
+          );
+
+          setSelectedFinding(
+            finding
+          );
+
+
+          setRelationsLoading(
+            true
+          );
+
+
+          setRelationsError(
+            ""
+          );
+
+
+          const response =
+            await getFindingRelations(
+              finding.id
+            );
+
+
+          setFindingRelations(
+            response?.data
+              ?.relations ??
+            []
+          );
+
+        } catch (err) {
+
+          setFindingRelations(
+            []
+          );
+
+
+          setRelationsError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load evidence intelligence"
+          );
+
+        } finally {
+
+          setRelationsLoading(
+            false
+          );
+
+        }
+      },
+      []
+    );
+
+
+  const handleGenerateFusion =
+    useCallback(
+      async (
+        cluster
+      ) => {
+
+        if (
+          !currentDisaster?.id ||
+          !cluster
+        ) {
+          return;
+        }
+
+
+        try {
+
+          setFusionLoading(
+            true
+          );
+
+
+          setFusionError(
+            ""
+          );
+
+
+          const response =
+            await generateFusionRecommendation(
+              currentDisaster.id,
+              cluster.anchorFindingId
+            );
+
+
+          const recommendation =
+            response?.data
+              ?.recommendation;
+
+
+          if (
+            !recommendation
+          ) {
+
+            throw new Error(
+              "Backend did not return a fusion recommendation."
+            );
+
+          }
+
+
+          setSelectedFinding(
+            null
+          );
+
+
+          setFindingRelations(
+            []
+          );
+
+
+          setSelectedCluster(
+            null
+          );
+
+
+          setSelectedFusionRecommendation(
+            recommendation
+          );
+
+
+          await loadFusionRecommendations();
+
+        } catch (err) {
+
+          setFusionError(
+            err instanceof Error
+              ? err.message
+              : "Failed to generate fusion recommendation"
+          );
+
+        } finally {
+
+          setFusionLoading(
+            false
+          );
+
+        }
+
+      },
+      [
+        currentDisaster?.id,
+        loadFusionRecommendations,
+      ]
+    );
+
+
+  const handleReviewFusion =
+    useCallback(
+      async (
+        recommendationId,
+        payload
+      ) => {
+
+        try {
+
+          setFusionLoading(
+            true
+          );
+
+
+          setFusionError(
+            ""
+          );
+
+
+          const response =
+            await reviewFusionRecommendation(
+              recommendationId,
+              payload
+            );
+
+
+          const recommendation =
+            response?.data
+              ?.recommendation;
+
+
+          const createdFinding =
+            response?.data
+              ?.finding;
+
+
+          if (
+            !recommendation
+          ) {
+
+            throw new Error(
+              "Backend did not return reviewed recommendation."
+            );
+
+          }
+
+
+          setSelectedFusionRecommendation(
+            recommendation
+          );
+
+
+          await loadFusionRecommendations();
+
+
+          if (
+            createdFinding
+          ) {
+
+            await loadFindings();
+            await loadEvidenceClusters();
+
+          }
+
+        } catch (err) {
+
+          setFusionError(
+            err instanceof Error
+              ? err.message
+              : "Failed to review fusion recommendation"
+          );
+
+        } finally {
+
+          setFusionLoading(
+            false
+          );
+
+        }
+
+      },
+      [
+        loadEvidenceClusters,
+        loadFindings,
+        loadFusionRecommendations,
+      ]
+    );
+
+
+  const handleOpenFusionFinding =
+    useCallback(
+      async (
+        findingId
+      ) => {
+
+        try {
+
+          setFusionError(
+            ""
+          );
+
+
+          const response =
+            await getFindingById(
+              findingId
+            );
+
+
+          const finding =
+            response?.data
+              ?.finding;
+
+
+          if (
+            !finding
+          ) {
+
+            throw new Error(
+              "Backend did not return the FUSION finding."
+            );
+
+          }
+
+
+          setSelectedFusionRecommendation(
+            null
+          );
+
+
+          void loadFindingRelations(
+            finding
+          );
+
+        } catch (err) {
+
+          setFusionError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load FUSION finding"
+          );
+
+        }
+
+      },
+      [
+        loadFindingRelations,
+      ]
+    );
+
 
   function prettyType(
     type
@@ -768,13 +1380,71 @@ export default function DisasterMap() {
   }
 
 
+  function getClusterColor(
+    state
+  ) {
+    switch (state) {
+
+      case "DISPUTED":
+        return "#ef4444";
+
+
+      case "CORROBORATED":
+        return "#22c55e";
+
+
+      case "RELATED":
+        return "#38bdf8";
+
+
+      default:
+        return "#94a3b8";
+    }
+  }
+
+
+  function getClusterRadius(
+    cluster
+  ) {
+    return Math.min(
+      34,
+      18 +
+        (
+          cluster
+            .activeEvidenceCount *
+          2
+        )
+    );
+  }
+
+
+  function getRelationColor(
+    relationType
+  ) {
+    switch (
+      relationType
+    ) {
+
+      case "DISPUTED":
+        return "#ef4444";
+
+
+      case "CORROBORATES":
+        return "#22c55e";
+
+
+      case "POSSIBLE_DUPLICATE":
+        return "#f59e0b";
+
+
+      default:
+        return "#38bdf8";
+    }
+  }
+
+
   return (
     <div className="space-y-5">
-
-
-      {/* ============================================================= */}
-      {/* HEADER                                                        */}
-      {/* ============================================================= */}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
 
@@ -801,7 +1471,9 @@ export default function DisasterMap() {
                 currentDisaster
                   ?.name ??
                 "no selected disaster"
+
               }
+
             </span>.
 
           </p>
@@ -814,9 +1486,11 @@ export default function DisasterMap() {
 
           <button
             type="button"
-            onClick={
-              loadFindings
-            }
+            onClick={() => {
+              void loadFindings();
+              void loadEvidenceClusters();
+              void loadFusionRecommendations();
+            }}
             disabled={
               loading ||
               !currentDisaster
@@ -825,11 +1499,10 @@ export default function DisasterMap() {
           >
 
             <RefreshCw
-              className={`w-4 h-4 ${
-                loading
-                  ? "animate-spin"
-                  : ""
-              }`}
+              className={`w-4 h-4 ${loading
+                ? "animate-spin"
+                : ""
+                }`}
             />
 
             Refresh
@@ -854,11 +1527,10 @@ export default function DisasterMap() {
 
               setError("");
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 transition-colors ${
-              reportMode
-                ? "bg-orange-500 text-white"
-                : "bg-orange-600 hover:bg-orange-700 text-white"
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 transition-colors ${reportMode
+              ? "bg-orange-500 text-white"
+              : "bg-orange-600 hover:bg-orange-700 text-white"
+              }`}
           >
 
             <Crosshair className="w-4 h-4" />
@@ -874,11 +1546,6 @@ export default function DisasterMap() {
         </div>
 
       </div>
-
-
-      {/* ============================================================= */}
-      {/* MESSAGES                                                      */}
-      {/* ============================================================= */}
 
       {error && (
 
@@ -909,10 +1576,22 @@ export default function DisasterMap() {
 
       )}
 
+      {clustersError && (
 
-      {/* ============================================================= */}
-      {/* LIVE INTELLIGENCE SUMMARY                                     */}
-      {/* ============================================================= */}
+        <div className="flex gap-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-500 text-sm">
+
+          <TriangleAlert className="w-4 h-4 mt-0.5" />
+
+          <span>
+            {
+              clustersError
+            }
+          </span>
+
+        </div>
+
+      )}
+
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
 
@@ -969,11 +1648,6 @@ export default function DisasterMap() {
         />
 
       </div>
-
-
-      {/* ============================================================= */}
-      {/* FILTERS                                                       */}
-      {/* ============================================================= */}
 
       <div className="theme-card rounded-xl border border-[var(--border-color)] p-3 flex flex-wrap items-center gap-3">
 
@@ -1055,6 +1729,47 @@ export default function DisasterMap() {
         </select>
 
 
+        <button
+          type="button"
+          onClick={
+            () =>
+              setShowClusterLayer(
+                (current) =>
+                  !current
+              )
+          }
+          className={`
+            px-3
+            py-2
+            rounded-lg
+            border
+            text-xs
+            font-bold
+            transition-colors
+            ${
+              showClusterLayer
+                ? "border-orange-500 bg-orange-500/10 text-orange-500"
+                : "border-[var(--border-color)] text-[var(--text-secondary)]"
+            }
+          `}
+        >
+          Evidence Clusters:{" "}
+          {
+            showClusterLayer
+              ? "ON"
+              : "OFF"
+          }
+        </button>
+
+
+        <span className="text-xs text-[var(--text-secondary)]">
+          {
+            visibleEvidenceClusters.length
+          }{" "}
+          active clusters
+        </span>
+
+
         <div className="ml-auto text-xs text-[var(--text-muted)]">
 
           Showing{" "}
@@ -1071,11 +1786,6 @@ export default function DisasterMap() {
         </div>
 
       </div>
-
-
-      {/* ============================================================= */}
-      {/* MAIN MAP                                                      */}
-      {/* ============================================================= */}
 
       <div className="relative theme-card rounded-2xl overflow-hidden border border-[var(--border-color)] h-[650px]">
 
@@ -1097,10 +1807,6 @@ export default function DisasterMap() {
           </div>
 
         )}
-
-
-        {/* REPORT MODE HUD */}
-
         {reportMode && (
 
           <div className="absolute z-[1000] top-4 left-1/2 -translate-x-1/2 rounded-xl px-5 py-3 bg-orange-600 text-white shadow-2xl">
@@ -1116,9 +1822,7 @@ export default function DisasterMap() {
           </div>
 
         )}
-
-
-        {/* LEGEND */}
+      
 
         <div className="absolute z-[900] left-4 bottom-4 bg-slate-950/90 border border-slate-700 rounded-xl p-4 text-white shadow-xl">
 
@@ -1187,6 +1891,300 @@ export default function DisasterMap() {
           />
 
 
+          {
+            selectedCluster &&
+            selectedCluster.relations.map(
+              (relation) => {
+
+                const findingA =
+                  selectedCluster
+                    .members
+                    .find(
+                      (member) =>
+                        member.id ===
+                        relation.findingAId
+                    );
+
+
+                const findingB =
+                  selectedCluster
+                    .members
+                    .find(
+                      (member) =>
+                        member.id ===
+                        relation.findingBId
+                    );
+
+
+                if (
+                  !findingA ||
+                  !findingB ||
+                  findingA.latitude === null ||
+                  findingA.longitude === null ||
+                  findingB.latitude === null ||
+                  findingB.longitude === null
+                ) {
+                  return null;
+                }
+
+
+                return (
+                  <Polyline
+                    key={
+                      relation.id
+                    }
+                    positions={[
+                      [
+                        Number(
+                          findingA.latitude
+                        ),
+                        Number(
+                          findingA.longitude
+                        ),
+                      ],
+                      [
+                        Number(
+                          findingB.latitude
+                        ),
+                        Number(
+                          findingB.longitude
+                        ),
+                      ],
+                    ]}
+                    pathOptions={{
+                      color:
+                        getRelationColor(
+                          relation
+                            .relationType
+                        ),
+
+                      weight:
+                        3,
+
+                      opacity:
+                        0.7,
+
+                      dashArray:
+                        relation
+                          .relationType ===
+                        "RELATED"
+                          ? "8 8"
+                          : undefined,
+                    }}
+                  />
+                );
+              }
+            )
+          }
+
+
+          {
+            showClusterLayer &&
+            visibleEvidenceClusters.map(
+              (cluster) => {
+
+                const latitude =
+                  cluster.displayCenter
+                    ?.latitude;
+
+
+                const longitude =
+                  cluster.displayCenter
+                    ?.longitude;
+
+
+                if (
+                  latitude === null ||
+                  latitude === undefined ||
+                  longitude === null ||
+                  longitude === undefined
+                ) {
+                  return null;
+                }
+
+
+                const color =
+                  getClusterColor(
+                    cluster.state
+                  );
+
+
+                const selected =
+                  selectedCluster
+                    ?.clusterId ===
+                  cluster.clusterId;
+
+
+                return (
+                  <CircleMarker
+                    key={
+                      cluster.clusterId
+                    }
+                    center={[
+                      Number(
+                        latitude
+                      ),
+                      Number(
+                        longitude
+                      ),
+                    ]}
+                    radius={
+                      getClusterRadius(
+                        cluster
+                      )
+                    }
+                    pathOptions={{
+                      color,
+
+                      fillColor:
+                        color,
+
+                      fillOpacity:
+                        selected
+                          ? 0.25
+                          : 0.12,
+
+                      opacity:
+                        0.9,
+
+                      weight:
+                        selected
+                          ? 5
+                          : 3,
+
+                      dashArray:
+                        cluster.state ===
+                          "RELATED"
+                          ? "8 6"
+                          : undefined,
+                    }}
+                  >
+
+                    <Popup
+                      minWidth={
+                        270
+                      }
+                    >
+
+                      <div className="space-y-3 text-slate-900">
+
+                        <div className="flex items-center justify-between gap-3">
+
+                          <p className="font-bold text-sm">
+                            Evidence Cluster
+                          </p>
+
+
+                          <span
+                            className="text-[10px] font-bold"
+                            style={{
+                              color,
+                            }}
+                          >
+                            {
+                              cluster.state
+                            }
+                          </span>
+
+                        </div>
+
+
+                        <div className="grid grid-cols-2 gap-2">
+
+                          <div className="rounded bg-slate-100 p-2">
+
+                            <p className="text-[9px] uppercase text-slate-500">
+                              Active Evidence
+                            </p>
+
+
+                            <p className="font-bold">
+                              {
+                                cluster
+                                  .activeEvidenceCount
+                              }
+                            </p>
+
+                          </div>
+
+
+                          <div className="rounded bg-slate-100 p-2">
+
+                            <p className="text-[9px] uppercase text-slate-500">
+                              Verified
+                            </p>
+
+
+                            <p className="font-bold">
+                              {
+                                cluster
+                                  .verifiedCount
+                              }
+                            </p>
+
+                          </div>
+
+                        </div>
+
+
+                        <p className="text-xs text-slate-600">
+                          Highest severity:{" "}
+                          <strong>
+                            {
+                              cluster
+                                .highestSeverity ??
+                              "NONE"
+                            }
+                          </strong>
+                        </p>
+
+
+                        <p className="text-[10px] text-slate-500">
+                          This marker represents connected evidence, not a fused or automatically verified incident.
+                        </p>
+
+                      </div>
+
+
+                      <button
+                        type="button"
+                        onClick={
+                          (event) => {
+
+                            event
+                              .stopPropagation();
+
+
+                            setSelectedFinding(
+                              null
+                            );
+
+
+                            setFindingRelations(
+                              []
+                            );
+
+
+                            setSelectedCluster(
+                              cluster
+                            );
+
+                          }
+                        }
+                        className="mt-3 w-full px-3 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold"
+                      >
+                        Inspect Evidence Cluster
+                      </button>
+
+                    </Popup>
+
+                  </CircleMarker>
+                );
+              }
+            )
+          }
+
+
           {filteredFindings.map(
             (finding) => {
 
@@ -1246,9 +2244,7 @@ export default function DisasterMap() {
                   >
 
                     <div className="space-y-3 text-slate-900">
-
-
-                      {/* SOURCE */}
+                    
 
                       <div className="flex items-center justify-between gap-2">
 
@@ -1284,9 +2280,6 @@ export default function DisasterMap() {
 
                       </div>
 
-
-                      {/* TITLE */}
-
                       <div>
 
                         <h4 className="font-bold text-sm">
@@ -1309,9 +2302,6 @@ export default function DisasterMap() {
 
                       </div>
 
-
-                      {/* DESCRIPTION */}
-
                       {finding.description && (
 
                         <p className="text-xs text-slate-600">
@@ -1323,7 +2313,7 @@ export default function DisasterMap() {
                       )}
 
 
-                      {/* INTELLIGENCE */}
+                      
 
                       <div className="grid grid-cols-2 gap-2">
 
@@ -1363,7 +2353,7 @@ export default function DisasterMap() {
                       </div>
 
 
-                      {/* POSITION */}
+                      
 
                       <div className="flex gap-1.5 text-[10px] text-slate-500">
 
@@ -1386,13 +2376,13 @@ export default function DisasterMap() {
                       </div>
 
 
-                      {/* SAFE OPERATIONAL ACTION */}
+                      
 
                       <div className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-[10px] text-orange-800">
 
                         {
                           finding.verificationStatus ===
-                          "PENDING"
+                            "PENDING"
                             ? "Awaiting responder verification before operational prioritization."
                             : `Verification status: ${finding.verificationStatus}`
                         }
@@ -1400,7 +2390,35 @@ export default function DisasterMap() {
                       </div>
 
                     </div>
+                    <button
+                      type="button"
+                      onClick={
+                        (event) => {
 
+                          event.stopPropagation();
+
+
+                          void loadFindingRelations(
+                            finding
+                          );
+
+                        }
+                      }
+                      className="mt-3 w-full
+    px-3
+    py-2
+    rounded-lg
+    bg-orange-600
+    hover:bg-orange-700
+    text-white
+    text-xs
+    font-bold
+  "
+                    >
+
+                      View Evidence Intelligence
+
+                    </button>
                   </Popup>
 
                 </CircleMarker>
@@ -1426,12 +2444,20 @@ export default function DisasterMap() {
 
         )}
 
+
+        {clustersLoading && (
+
+          <div className="absolute top-14 right-4 z-[1000] rounded-lg bg-slate-950/90 border border-slate-700 px-3 py-2 text-white text-xs flex items-center gap-2">
+
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+
+            Building evidence clusters...
+
+          </div>
+
+        )}
+
       </div>
-
-
-      {/* ============================================================= */}
-      {/* REPORT PANEL                                                  */}
-      {/* ============================================================= */}
 
       {showReportPanel && (
 
@@ -1657,17 +2683,208 @@ export default function DisasterMap() {
         </div>
 
       )}
+      {
+        selectedFinding &&
+        (
+          <EvidenceIntelligencePanel
+            finding={
+              selectedFinding
+            }
 
+            relations={
+              findingRelations
+            }
+
+            loading={
+              relationsLoading
+            }
+
+            error={
+              relationsError
+            }
+
+            onRefresh={
+              () =>
+                void loadFindingRelations(
+                  selectedFinding
+                )
+            }
+
+            onClose={
+              () => {
+
+                setSelectedFinding(
+                  null
+                );
+
+
+                setFindingRelations(
+                  []
+                );
+
+
+                setRelationsError(
+                  ""
+                );
+
+              }
+            }
+          />
+        )
+      }
+
+
+      {
+        selectedCluster &&
+        (
+          <EvidenceClusterPanel
+            cluster={
+              selectedCluster
+            }
+
+            existingFusionRecommendation={
+              selectedClusterFusionRecommendation
+            }
+
+            fusionLoading={
+              fusionLoading
+            }
+
+            fusionError={
+              fusionError
+            }
+
+            onClose={
+              () => {
+
+                setSelectedCluster(
+                  null
+                );
+
+
+                setFusionError(
+                  ""
+                );
+
+              }
+            }
+
+            onGenerateFusion={
+              () =>
+                void handleGenerateFusion(
+                  selectedCluster
+                )
+            }
+
+            onOpenExistingFusion={
+              (recommendation) => {
+
+                setSelectedCluster(
+                  null
+                );
+
+
+                setFusionError(
+                  ""
+                );
+
+
+                setSelectedFusionRecommendation(
+                  recommendation
+                );
+
+              }
+            }
+
+            onOpenFinding={
+              (member) => {
+
+                setSelectedCluster(
+                  null
+                );
+
+
+                const fullFinding =
+                  findings.find(
+                    (finding) =>
+                      finding.id ===
+                      member.id
+                  ) ??
+                  {
+                    ...member,
+
+                    location: {
+                      latitude:
+                        member.latitude,
+
+                      longitude:
+                        member.longitude,
+                    },
+                  };
+
+
+                void loadFindingRelations(
+                  fullFinding
+                );
+
+              }
+            }
+          />
+        )
+      }
+
+
+      {
+        selectedFusionRecommendation &&
+        (
+          <FusionRecommendationPanel
+            recommendation={
+              selectedFusionRecommendation
+            }
+
+            loading={
+              fusionLoading
+            }
+
+            error={
+              fusionError
+            }
+
+            onClose={
+              () => {
+
+                setSelectedFusionRecommendation(
+                  null
+                );
+
+
+                setFusionError(
+                  ""
+                );
+
+              }
+            }
+
+            onReview={
+              (payload) =>
+                handleReviewFusion(
+                  selectedFusionRecommendation.id,
+                  payload
+                )
+            }
+
+            onOpenFinding={
+              (findingId) =>
+                void handleOpenFusionFinding(
+                  findingId
+                )
+            }
+          />
+        )
+      }
     </div>
   );
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Summary card
-|--------------------------------------------------------------------------
-*/
 
 function SummaryCard({
   label,
@@ -1731,11 +2948,7 @@ function SummaryCard({
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Legend
-|--------------------------------------------------------------------------
-*/
+
 
 function LegendItem({
   color,

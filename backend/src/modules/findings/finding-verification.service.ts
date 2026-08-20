@@ -1,7 +1,9 @@
 import {
   AppError,
 } from "../../utils/app-error.js";
-
+import {
+  refreshFindingCorrelationBestEffort,
+} from "./finding-correlation.service.js";
 import {
   findFindingById,
 } from "./finding.repository.js";
@@ -59,7 +61,9 @@ export async function verifyFindingService(
     );
 
   }
-
+  await refreshFindingCorrelationBestEffort(
+  findingId
+);
 
   return {
     finding,

@@ -1,44 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DrishtiX | Disaster Intelligence & Tactical Command Center</title>
-    
-    <!-- Google Fonts: Inter & JetBrains Mono for telemetry -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'monospace'],
-            },
-            colors: {
-              'gov-navy': '#06121E',
-              'gov-card': '#0D1E30',
-              'gov-border': '#1A334E',
-              'brand-blue': '#0088FF',
-              'brand-red': '#FF3B30',
-              'brand-amber': '#FF9500',
-              'brand-green': '#34C759',
-            }
-          }
-        }
-      }
-    </script>
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  </head>
-  <body class="bg-gov-navy text-slate-100 font-sans antialiased selection:bg-brand-blue selection:text-white">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+
+  <meta
+    name="description"
+    content="DrishtiX human-in-the-loop disaster intelligence and evidence correlation platform"
+  />
+
+
+  <title>
+    DrishtiX | Disaster Intelligence
+  </title>
+
+
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="/favicon.svg"
+  />
+
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
+
+</head>
+
+
+<body class="font-sans antialiased">
+
+  <div id="root"></div>
+
+
+  <script
+    type="module"
+    src="/src/main.jsx"
+  ></script>
+
+</body>
+
 </html>
