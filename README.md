@@ -1,95 +1,431 @@
 # DrishtiX
 
-DrishtiX is a human-in-the-loop disaster intelligence platform for collecting imagery, running AI-assisted analysis, recording geolocated operational findings, visualizing them on a live map, and verifying findings before they are used for downstream prioritization.
+DrishtiX is a human-in-the-loop disaster intelligence and decision-support platform for collecting operational evidence, analyzing imagery, correlating geospatial findings, identifying corroborating or conflicting reports, generating human-reviewable fusion recommendations, and prioritizing situations that require responder attention.
 
-> Current AI status: the integrated AI service uses a generic YOLO object detector and stores raw detections separately from disaster-domain findings. It does **not** claim that generic detections such as `car`, `truck`, or `person` are disaster damage assessments. Disaster-domain findings are currently created through responder reporting and the shared finding model is ready for a future disaster-specific model.
-
-## Current architecture
+The system is designed around one core principle:
 
 ```text
-React + Vite
-    |
-    v
-Express + TypeScript
-    |---------------------- PostgreSQL
-    |                         |
-    |                         +-- disasters
-    |                         +-- imagery
-    |                         +-- ai_runs
-    |                         +-- findings
-    |                         +-- finding_verifications
-    |
-    v
-FastAPI
-    |
-    v
-Ultralytics YOLO
+AI recommends.
+Evidence supports.
+Authorized humans decide.
 ```
 
-## Implemented capabilities
+DrishtiX does not treat raw AI detections as verified disaster facts.
 
-- Disaster event creation, listing, selection, and status tracking
-- JPEG/PNG/WebP imagery upload with file validation and metadata storage
-- Static imagery serving from the backend
-- Express-to-FastAPI image analysis integration
-- AI-run lifecycle tracking and raw model output persistence
-- Strict separation between raw CV detections and disaster-domain findings
-- Manual responder findings with geolocation, severity, title, and description
-- Live Leaflet disaster map backed by PostgreSQL findings
-- Map-click responder reporting
-- Findings filtering by source and severity
-- Human verification workflow: Confirm, Correct, Reject
-- Transactional verification updates using row locking
-- Immutable before/after verification snapshots
-- Multi-service health endpoint for API, database, and AI service
+---
 
-## Repository structure
+## Why DrishtiX?
+
+Disaster-response teams may receive observations from responders, imagery systems, automated computer-vision pipelines, and multiple independent reports.
+
+The difficult problem is not simply collecting this information. It is determining:
+
+```text
+Which reports refer to the same event?
+
+Which reports corroborate each other?
+
+Which reports contradict trusted evidence?
+
+Which reports might be duplicates?
+
+Which evidence deserves immediate human review?
+
+When is there enough support to synthesize a higher-level operational finding?
+```
+
+DrishtiX provides an explainable evidence-intelligence pipeline for answering these questions without removing human control.
+
+---
+
+## System Architecture
+
+```text
+                         ┌─────────────────────────┐
+                         │     React + Vite        │
+                         │   Operational Frontend  │
+                         └────────────┬────────────┘
+                                      │
+                                      │ HTTP + Auth Token
+                                      ▼
+                         ┌─────────────────────────┐
+                         │ Express + TypeScript    │
+                         │    Backend API          │
+                         └──────┬───────────┬──────┘
+                                │           │
+                                │           │
+                                ▼           ▼
+                    ┌───────────────┐   ┌──────────────────┐
+                    │ PostgreSQL    │   │ FastAPI AI       │
+                    │ + PostGIS     │   │ Service          │
+                    └──────┬────────┘   └────────┬─────────┘
+                           │                     │
+                           │                     ▼
+                           │              ┌──────────────┐
+                           │              │ Ultralytics │
+                           │              │ YOLO        │
+                           │              └──────────────┘
+                           │
+                           ▼
+                 Spatial Evidence Engine
+                           │
+                           ▼
+             Findings → Relations → Clusters
+                           │
+                           ▼
+                Fusion Recommendations
+                           │
+                           ▼
+                    Human Review
+                           │
+                           ▼
+                  Operational Priority
+```
+
+---
+
+## Evidence Intelligence Pipeline
+
+The main DrishtiX workflow is:
+
+```text
+AI observation / responder report
+                │
+                ▼
+             Finding
+                │
+                ▼
+     PostGIS spatial correlation
+                │
+                ▼
+       Evidence relationships
+                │
+        ┌───────┼─────────┐
+        ▼       ▼         ▼
+ CORROBORATES RELATED  DISPUTED
+        │
+        └──────────────┐
+                       ▼
+                Evidence Cluster
+                       │
+                       ▼
+              Fusion Recommendation
+                       │
+                       ▼
+                  HUMAN REVIEW
+                 /             \
+             Reject           Approve
+                                │
+                                ▼
+                         FUSION Finding
+                                │
+                                ▼
+                   Verification = PENDING
+                                │
+                                ▼
+                       Human Verification
+                                │
+                                ▼
+                     Operational Priority
+```
+
+A fusion recommendation never automatically becomes a verified operational fact.
+
+---
+
+## Implemented Capabilities
+
+DrishtiX currently includes disaster-event management, imagery upload and metadata tracking, FastAPI-based AI analysis, raw model-output persistence, geolocated responder findings, Leaflet-based operational mapping, human verification with immutable audit history, PostGIS-backed spatial correlation, deterministic evidence relationships, disaster-level evidence clustering, human-reviewed fusion recommendations, explainable operational priority scoring, a live operational dashboard, role-based access control, and a reproducible synthetic demo scenario.
+
+---
+
+## Data Integrity Model
+
+DrishtiX deliberately keeps different levels of information separate.
+
+```text
+Raw AI Detection
+      !=
+Disaster Finding
+      !=
+Corroborated Evidence
+      !=
+Fusion Recommendation
+      !=
+Verified Operational Fact
+```
+
+Generic object detections are not converted into disaster damage claims merely because an object was detected.
+
+A generic model detecting:
+
+```text
+person
+car
+truck
+building-like object
+```
+
+does not prove:
+
+```text
+casualty
+road blockage
+structural damage
+infrastructure failure
+```
+
+Disaster-domain findings therefore use a controlled finding schema and remain subject to human review.
+
+---
+
+## AI Service Status
+
+The integrated AI service uses Ultralytics YOLO for computer-vision inference.
+
+The current generic object detector produces raw observations. DrishtiX does not claim that generic YOLO detections are disaster-specific damage classifications.
+
+The architecture is ready for a future disaster-specific model whose outputs can satisfy the validated disaster-domain finding contract.
+
+The AI service is implemented with FastAPI. 
+
+---
+
+## Spatial Evidence Correlation
+
+DrishtiX uses PostgreSQL with PostGIS to perform distance-based evidence discovery.
+
+Relationships are deterministic and explainable.
+
+```text
+CORROBORATES
+RELATED
+POSSIBLE_DUPLICATE
+DISPUTED
+```
+
+Relationship scores represent evidence-relationship strength, not probability and not AI confidence.
+
+Examples include same-type reports within the configured spatial radius, source diversity, verification state, temporal proximity, and explicit trusted-versus-rejected contradictions.
+
+Rejected evidence cannot become ordinary corroborating support.
+
+---
+
+## Evidence Clusters
+
+Pairwise evidence relationships are converted into deterministic disaster-level evidence clusters.
+
+Cluster states include:
+
+```text
+CORROBORATED
+DISPUTED
+RELATED
+ISOLATED
+```
+
+Clusters are derived from findings and persisted relationships rather than stored as a separate source of truth.
+
+Rejected findings may remain visible for auditability but are excluded from active support calculations.
+
+Derived `FUSION` findings are intentionally excluded from source-evidence clustering to prevent feedback loops.
+
+---
+
+## Fusion Recommendations
+
+A corroborated cluster may generate a deterministic fusion recommendation.
+
+Fusion considers factors such as dominant finding type, trusted observations, source diversity, evidence membership, severity, and relationship structure.
+
+A generated recommendation remains:
+
+```text
+PENDING
+```
+
+until a Commander reviews it.
+
+Approval creates a new finding with:
+
+```text
+source = FUSION
+verificationStatus = PENDING
+```
+
+The resulting finding must still pass the normal human verification workflow.
+
+Fusion support strength is not AI confidence.
+
+---
+
+## Operational Prioritization
+
+DrishtiX provides a deterministic inspection-priority engine.
+
+Priority scores are based on explainable components including:
+
+```text
+severity
+verification state
+evidence-cluster state
+source diversity
+corroboration
+recency
+fusion review requirements
+```
+
+Priorities are ranked from `0–100` and mapped to operational levels:
+
+```text
+CRITICAL
+HIGH
+MEDIUM
+LOW
+```
+
+The score determines what humans should inspect first. It does not automatically dispatch resources.
+
+---
+
+## Human Verification
+
+Findings can move through:
+
+```text
+PENDING
+CONFIRMED
+CORRECTED
+REJECTED
+```
+
+Verification uses transactional updates and PostgreSQL row locking.
+
+Every decision creates an immutable audit record containing before/after state and reviewer metadata.
+
+Verification history remains visible even when the current finding state changes.
+
+---
+
+## Authentication and RBAC
+
+DrishtiX currently implements signed backend-validated demo sessions with three operational roles.
+
+| Role | Read operational intelligence | Submit evidence | Verify findings | Review fusion | Manage disasters |
+|---|---:|---:|---:|---:|---:|
+| `VIEWER` | Yes | No | No | No | No |
+| `RESPONDER` | Yes | Yes | No | No | No |
+| `COMMANDER` | Yes | Yes | Yes | Yes | Yes |
+
+The backend is the security boundary. UI visibility rules improve the experience but do not replace server-side authorization.
+
+Current authentication is suitable for the project demonstration. A production deployment should replace environment-backed demo accounts with persistent identities, hashed credentials or organizational SSO, token revocation, MFA where appropriate, and a complete authorization model.
+
+---
+
+## Repository Structure
 
 ```text
 DrishtiX/
-├── frontend/      # React + Vite + Tailwind + React Leaflet
-├── backend/       # Express + TypeScript + PostgreSQL
-├── ai-service/    # FastAPI + Ultralytics YOLO
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── utils/
+│   └── public/
+│
+├── backend/
+│   ├── migrations/
+│   └── src/
+│       ├── config/
+│       ├── integrations/
+│       ├── modules/
+│       │   ├── auth/
+│       │   ├── disasters/
+│       │   ├── findings/
+│       │   └── imagery/
+│       └── scripts/
+│
+├── ai-service/
+│   ├── app/
+│   ├── routes/
+│   ├── schemas/
+│   └── services/
+│
 └── README.md
 ```
 
+---
+
+# Local Setup
+
 ## Prerequisites
 
-- Node.js 20+ recommended
-- npm
-- PostgreSQL
-- Python 3.11+ recommended
-- Git
+Use Node.js 20+ and npm for the frontend/backend, PostgreSQL 18 with PostGIS for spatial features, Python 3.11+ for the AI service, and Git.
 
-The AI service may run on newer Python versions, but using a widely supported Python release is recommended for ML dependency compatibility.
+PostGIS is required for migrations `007+`.
 
-## 1. Clone
+---
+
+## Clone
 
 ```bash
 git clone https://github.com/Aryanbharti214/DrishtiX.git
 cd DrishtiX
 ```
 
-## 2. PostgreSQL
+---
 
-Create a database:
+## PostgreSQL + PostGIS
+
+Create the database:
 
 ```bash
 createdb drishtix
 ```
 
+Make sure PostgreSQL can see PostGIS:
+
+```sql
+SELECT name, default_version
+FROM pg_available_extensions
+WHERE name = 'postgis';
+```
+
+Enable it:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;
+```
+
 Run migrations in order:
 
 ```bash
-psql -U postgres -d drishtix -f backend/migrations/001_create_disasters.sql
-psql -U postgres -d drishtix -f backend/migrations/002_create_imagery.sql
-psql -U postgres -d drishtix -f backend/migrations/003_create_ai_runs.sql
-psql -U postgres -d drishtix -f backend/migrations/004_create_findings.sql
-psql -U postgres -d drishtix -f backend/migrations/005_enhance_findings.sql
-psql -U postgres -d drishtix -f backend/migrations/006_create_finding_verifications.sql
+psql -d drishtix -f backend/migrations/001_create_disasters.sql
+psql -d drishtix -f backend/migrations/002_create_imagery.sql
+psql -d drishtix -f backend/migrations/003_create_ai_runs.sql
+psql -d drishtix -f backend/migrations/004_create_findings.sql
+psql -d drishtix -f backend/migrations/005_enhance_findings.sql
+psql -d drishtix -f backend/migrations/006_create_finding_verifications.sql
+psql -d drishtix -f backend/migrations/007_add_postgis_spatial_findings.sql
+psql -d drishtix -f backend/migrations/008_create_finding_relations.sql
+psql -d drishtix -f backend/migrations/009_create_fusion_recommendations.sql
 ```
 
-## 3. Backend
+If PostgreSQL runs on a non-default port, add for example:
+
+```bash
+-p 5433
+```
+
+to the `psql` commands.
+
+---
+
+## Backend
 
 ```bash
 cd backend
@@ -97,14 +433,12 @@ npm install
 cp .env.example .env
 ```
 
-Example configuration:
+Configure `.env` with the correct database URL, AI service URL, role credentials, and a strong token secret.
 
-```env
-NODE_ENV=development
-PORT=4000
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/drishtix
-AI_SERVICE_URL=http://127.0.0.1:8000
-CORS_ORIGIN=http://localhost:5173
+Generate a token secret with:
+
+```bash
+openssl rand -hex 32
 ```
 
 Run:
@@ -113,20 +447,30 @@ Run:
 npm run dev
 ```
 
-Backend health:
+Backend:
+
+```text
+http://localhost:4000
+```
+
+Health:
 
 ```bash
 curl http://localhost:4000/api/v1/health
 ```
 
-## 4. AI service
+Backend scripts include the reproducible demo seed command. 
 
-Open another terminal:
+---
+
+## AI Service
 
 ```bash
 cd ai-service
+
 python -m venv .venv
 source .venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
@@ -136,39 +480,30 @@ Run:
 uvicorn app.main:app --reload --port 8000
 ```
 
-AI health:
+The current FastAPI application exposes its health endpoint from `app/main.py`. 
+
+Health:
 
 ```bash
 curl http://127.0.0.1:8000/health
 ```
 
-Swagger UI:
+Swagger:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-The primary analysis endpoint is:
+---
 
-```text
-POST /api/v1/analyze
-```
-
-It accepts multipart fields:
-
-- `image`
-- `imageId`
-
-and returns a normalized response containing model metadata, raw detections, and disaster-domain findings.
-
-## 5. Frontend
-
-Open another terminal:
+## Frontend
 
 ```bash
 cd frontend
+
 npm install
 cp .env.example .env
+
 npm run dev
 ```
 
@@ -178,143 +513,193 @@ Frontend:
 http://localhost:5173
 ```
 
-## Environment variables
+---
 
-### Backend
+# Demo Dataset
 
-| Variable | Purpose |
-|---|---|
-| `NODE_ENV` | `development`, `test`, or `production` |
-| `PORT` | Express server port |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `AI_SERVICE_URL` | FastAPI base URL |
-| `CORS_ORIGIN` | Allowed frontend origin |
+A deterministic synthetic incident can be generated with:
 
-### Frontend
-
-| Variable | Purpose |
-|---|---|
-| `VITE_API_BASE_URL` | Express API base URL |
-| `VITE_BACKEND_ORIGIN` | Backend origin used for uploaded imagery assets |
-
-## Core API routes
-
-### System
-
-```text
-GET /api/v1/health
+```bash
+cd backend
+npm run seed:demo
 ```
 
-### Disasters
+The command is defined in the backend package scripts. 
+
+The demo is intentionally synthetic and exists to exercise the actual DrishtiX evidence pipeline.
+
+It demonstrates responder findings, synthetic machine-assisted observations, corroboration, possible duplication, conflicting evidence, related evidence, isolation, cluster generation, priority ranking, fusion review, and verification.
+
+Do not present seeded evidence as real-world disaster data.
+
+---
+
+## Recommended Demo Flow
 
 ```text
-POST  /api/v1/disasters
+Login as VIEWER
+    ↓
+Dashboard
+    ↓
+Inspect live metrics and priority queue
+    ↓
+Open Intelligence Map
+    ↓
+Inspect corroborated evidence cluster
+    ↓
+Inspect evidence relationships
+    ↓
+Inspect disputed evidence
+    ↓
+
+Login as RESPONDER
+    ↓
+Create field finding / upload imagery
+    ↓
+Evidence enters correlation pipeline
+    ↓
+
+Login as COMMANDER
+    ↓
+Review evidence
+    ↓
+Generate fusion recommendation
+    ↓
+Approve recommendation
+    ↓
+FUSION finding created as PENDING
+    ↓
+Human verification
+    ↓
+Priority/dashboard state updates
+```
+
+This demonstrates both the intelligence pipeline and separation of operational responsibilities.
+
+---
+
+# Core API
+
+Public endpoints:
+
+```text
+GET  /api/v1/health
+
+POST /api/v1/auth/login
+GET  /api/v1/auth/session
+```
+
+Authenticated disaster endpoints:
+
+```text
 GET   /api/v1/disasters
 GET   /api/v1/disasters/:id
+
+POST  /api/v1/disasters
 PATCH /api/v1/disasters/:id
 ```
 
-### Imagery
+Authenticated imagery endpoints:
 
 ```text
 POST /api/v1/imagery
 POST /api/v1/imagery/:id/analyze
+
 GET  /api/v1/imagery/:id
 GET  /api/v1/imagery/disaster/:disasterId
 ```
 
-### Findings
+Finding and verification endpoints:
 
 ```text
 POST /api/v1/findings/manual
+
 GET  /api/v1/findings/:id
 GET  /api/v1/findings/disaster/:disasterId
 GET  /api/v1/findings/imagery/:imageryId
+
 POST /api/v1/findings/:id/verify
 GET  /api/v1/findings/:id/verifications
 ```
 
-## Current analysis flow
+Evidence-intelligence endpoints:
 
 ```text
-1. User selects a disaster
-2. User uploads imagery
-3. Backend stores file + imagery metadata
-4. User starts AI analysis
-5. Express sends stored image to FastAPI
-6. FastAPI runs generic YOLO inference
-7. Raw detections are validated by the backend
-8. AI run and raw output are persisted
-9. Domain findings, if provided by a future disaster model, are persisted
-10. Responders can create field findings manually
-11. Findings appear on the live map
-12. Human reviewers Confirm / Correct / Reject findings
-13. Every verification creates an audit record
+POST /api/v1/findings/:id/correlate
+GET  /api/v1/findings/:id/relations
+
+GET  /api/v1/findings/disaster/:disasterId/clusters
+GET  /api/v1/findings/disaster/:disasterId/priorities
 ```
 
-## Data integrity principles
-
-DrishtiX deliberately separates three concepts:
+Fusion endpoints:
 
 ```text
-Raw detection != disaster finding != verified operational fact
+POST /api/v1/findings/disaster/:disasterId/clusters/:anchorFindingId/fusion-recommendation
+
+GET  /api/v1/findings/disaster/:disasterId/fusion-recommendations
+
+POST /api/v1/findings/fusion-recommendations/:id/review
 ```
 
-- Generic model detections are preserved as raw evidence.
-- Disaster findings use a controlled domain schema.
-- Operational decisions remain human-controlled.
-- Corrections preserve the original state in the audit trail.
+---
 
-## Development commands
+# Development Checks
 
 Backend:
 
 ```bash
-npm run dev
+cd backend
 npm run typecheck
 npm run build
-npm start
 ```
 
 Frontend:
 
 ```bash
-npm run dev
+cd frontend
 npm run build
-npm run preview
 ```
 
 AI service:
 
 ```bash
+cd ai-service
 python -m compileall app routes schemas services
-uvicorn app.main:app --reload --port 8000
 ```
 
-## Known development-stage limitations
+---
 
-- Generic YOLO currently provides object detections, not disaster-specific damage classification.
-- Authentication/RBAC is not implemented yet; reviewer labels are temporary development identifiers.
-- AI analysis is synchronous through Express; a background queue can be introduced later if inference latency or concurrency requires it.
-- Dashboard/priority widgets still contain development placeholders until the priority engine is implemented.
-- PostGIS spatial evidence correlation is planned but not yet implemented.
+# Current Limitations
 
-## Next milestones
+The current YOLO model is a generic object detector rather than a disaster-specific damage classifier.
 
-1. PostGIS-backed nearby-finding queries
-2. Spatial/temporal evidence correlation
-3. Evidence relationship types and explainable correlation scores
-4. Human-approved fusion recommendations
-5. Explainable priority scoring
-6. Real dashboard metrics
-7. Authentication and role-based access control
-8. Disaster-specific CV model integration
-9. Tests, containerization, CI, and deployment hardening
+Authentication currently uses environment-configured demonstration identities rather than a persistent user-management system.
 
-## Safety and decision model
+The current Express-to-FastAPI analysis path is synchronous.
 
-DrishtiX is designed as a decision-support system. AI may recommend or surface evidence, but authorized responders make final operational decisions.
+The evidence-correlation, clustering, fusion, and prioritization systems are deterministic decision-support mechanisms. They are not autonomous response systems.
 
-## License
+Production hardening would additionally require broader automated testing, secrets management, CI/CD, observability, durable identity management, deployment hardening, and an appropriate disaster-specific model.
 
-A project license has not yet been selected.
+---
+
+# Safety and Decision Model
+
+DrishtiX is designed for decision support.
+
+```text
+AI output
+   ↓
+Evidence
+   ↓
+Correlation
+   ↓
+Recommendation
+   ↓
+Authorized human decision
+```
+
+The system does not automatically dispatch emergency resources, automatically verify findings, or convert generic object detections into disaster claims.
+
+Operational authority remains with authorized human responders.
