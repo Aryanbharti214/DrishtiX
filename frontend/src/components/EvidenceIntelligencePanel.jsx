@@ -179,25 +179,46 @@ export default function EvidenceIntelligencePanel({
   return (
     <div
       className="
-        fixed
-        right-4
-        bottom-4
-        z-[1200]
-        w-[calc(100vw-2rem)]
-        sm:w-[430px]
-        max-h-[78vh]
-        overflow-y-auto
-        rounded-xl
-        border
-        border-[var(--border-color)]
-        bg-[var(--bg-primary)]
-        shadow-2xl
-      "
+    fixed
+    z-[1400]
+
+    left-3
+    right-3
+    bottom-3
+
+    sm:left-auto
+    sm:right-6
+    sm:top-24
+    sm:bottom-6
+    sm:w-[520px]
+
+    flex
+    flex-col
+
+    max-h-[82vh]
+    sm:max-h-[calc(100vh-7.5rem)]
+
+    overflow-hidden
+
+    rounded-2xl
+
+    border
+    border-slate-700/80
+
+    bg-[var(--bg-card)]
+
+    shadow-[0_24px_80px_rgba(0,0,0,0.65)]
+  "
     >
-
-      {/* HEADER */}
-
-      <div className="sticky top-0 z-10 bg-[var(--bg-primary)] border-b border-[var(--border-color)] p-4">
+      <div className="
+  shrink-0
+  z-10
+  bg-[var(--bg-card)]
+  border-b
+  border-[var(--border-color)]
+  px-5
+  py-4
+">
 
         <div className="flex items-start justify-between gap-4">
 
@@ -237,11 +258,11 @@ export default function EvidenceIntelligencePanel({
       </div>
 
 
-      <div className="p-4 space-y-5">
+      <div className="flex-1overflow-y-autop-5space-y-5bg-[var(--bg-card)]">
 
-        {/* SELECTED FINDING */}
 
-        <div className="rounded-xl border border-[var(--border-color)] p-4">
+
+        <div className="rounded-xlborderborder-orange-500/25bg-orange-500/[0.04]p-4">
 
           <div className="flex items-start justify-between gap-3">
 
@@ -303,7 +324,7 @@ export default function EvidenceIntelligencePanel({
         </div>
 
 
-        {/* SUMMARY */}
+
 
         <div className="grid grid-cols-2 gap-3">
 
@@ -341,7 +362,7 @@ export default function EvidenceIntelligencePanel({
         </div>
 
 
-        {/* REFRESH */}
+
 
         <button
           type="button"
@@ -369,11 +390,10 @@ export default function EvidenceIntelligencePanel({
         >
 
           <RefreshCw
-            className={`w-4 h-4 ${
-              loading
-                ? "animate-spin"
-                : ""
-            }`}
+            className={`w-4 h-4 ${loading
+              ? "animate-spin"
+              : ""
+              }`}
           />
 
 
@@ -382,7 +402,7 @@ export default function EvidenceIntelligencePanel({
         </button>
 
 
-        {/* ERROR */}
+
 
         {error && (
 
@@ -395,7 +415,7 @@ export default function EvidenceIntelligencePanel({
         )}
 
 
-        {/* LOADING */}
+
 
         {loading && (
 
@@ -408,7 +428,7 @@ export default function EvidenceIntelligencePanel({
         )}
 
 
-        {/* EMPTY */}
+
 
         {
           !loading &&
@@ -429,7 +449,7 @@ export default function EvidenceIntelligencePanel({
 
                 {
                   finding.verificationStatus ===
-                  "REJECTED"
+                    "REJECTED"
                     ? "Rejected evidence is intentionally excluded from supporting relationships."
                     : "No qualifying findings were found within the current spatial correlation radius."
                 }
@@ -441,7 +461,7 @@ export default function EvidenceIntelligencePanel({
         }
 
 
-        {/* RELATIONSHIPS */}
+
 
         {
           !loading &&
@@ -467,8 +487,7 @@ export default function EvidenceIntelligencePanel({
                   key={
                     relation.id
                   }
-                  className="rounded-xl border border-[var(--border-color)] overflow-hidden"
-                >
+                  className="rounded-xlborderborder-[var(--border-color)]bg-[var(--bg-main)]overflow-hiddenshadow-sm">
 
                   <div
                     className={`flex items-center gap-2 border-b px-4 py-3 ${meta.className}`}
@@ -523,7 +542,7 @@ export default function EvidenceIntelligencePanel({
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
 
-                      <div className="rounded-lg bg-black/5 p-2">
+                      <div className="rounded-lgborderborder-[var(--border-color)]bg-[var(--bg-card-hover)]p-3">
 
                         <p className="text-[var(--text-secondary)]">
                           Distance
@@ -540,7 +559,7 @@ export default function EvidenceIntelligencePanel({
                       </div>
 
 
-                      <div className="rounded-lg bg-black/5 p-2">
+                      <div className="rounded-lgborderborder-[var(--border-color)]bg-[var(--bg-card-hover)]p-3">
 
                         <p className="text-[var(--text-secondary)]">
                           Relationship Strength
@@ -620,7 +639,7 @@ export default function EvidenceIntelligencePanel({
                       {
                         relation.signals
                           ?.temporalGapMinutes !==
-                          undefined &&
+                        undefined &&
                         (
                           <p className="text-xs text-[var(--text-secondary)] mt-2">
                             Observation time gap:{" "}

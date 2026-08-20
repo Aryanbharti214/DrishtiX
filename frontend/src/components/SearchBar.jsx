@@ -12,7 +12,7 @@ export default function SearchBar({ onNavigate }) {
 
   const t = (keyPath) => getTranslation(language, keyPath);
 
-  // Mock search data - expand as needed
+  
   const searchableItems = [
     { id: 1, title: 'Dashboard Overview', page: 'dashboard', category: 'Navigation', icon: 'gauge' },
     { id: 2, title: 'Disaster Map', page: 'map', category: 'Navigation', icon: 'map' },
@@ -27,7 +27,7 @@ export default function SearchBar({ onNavigate }) {
     { id: 11, title: 'Drone Images', page: 'dashboard', category: 'Statistics', highlight: 'totalImages' },
   ];
 
-  // Filter results based on query
+  
   useEffect(() => {
     if (query.trim() === '') {
       setResults([]);
@@ -39,10 +39,10 @@ export default function SearchBar({ onNavigate }) {
       item.category.toLowerCase().includes(query.toLowerCase())
     );
 
-    setResults(filtered.slice(0, 8)); // Limit to 8 results
+    setResults(filtered.slice(0, 8));
   }, [query]);
 
-  // Close dropdown when clicking outside or pressing Escape
+  
   useEffect(() => {
     function handleClickOutside(event) {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -89,7 +89,7 @@ export default function SearchBar({ onNavigate }) {
 
   return (
     <div ref={searchRef} className="relative w-full max-w-md">
-      {/* Search Input */}
+      
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         <input
@@ -116,12 +116,12 @@ export default function SearchBar({ onNavigate }) {
         )}
       </div>
 
-      {/* Search Results Dropdown - Fully Opaque */}
+      
       {isOpen && query && (
         <div className="absolute top-full left-0 right-0 mt-2 rounded-lg shadow-xl z-[9999] overflow-hidden bg-slate-900 border border-slate-700 dark:bg-slate-900 dark:border-slate-700 light:bg-white light:border-slate-200">
           {results.length > 0 ? (
             <div className="max-h-96 overflow-y-auto">
-              {/* Group results by category */}
+              
               {['Navigation', 'Statistics', 'Reports', 'Data', 'Media'].map((category) => {
                 const categoryItems = results.filter(item => item.category === category);
                 if (categoryItems.length === 0) return null;

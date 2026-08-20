@@ -1,133 +1,712 @@
-// src/pages/login.jsx
-import React, { useState } from 'react';
+import React, {
+  useState,
+} from "react";
 
-export default function Login({onLogin}) {
-  const [credentials, setCredentials] = useState({ agencyId: '', password: '' });
+import {
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  LockKeyhole,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 
-  const handleChange = (e) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value });
-  };
+import {
+  login,
+} from "../services/api";
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Connect to services/api.js when backend is ready
-    onLogin(credentials);
-  };
+
+export default function Login({
+  onLogin,
+}) {
+
+  const [
+    credentials,
+    setCredentials,
+  ] = useState({
+    agencyId:
+      "",
+
+    password:
+      "",
+  });
+
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+
+
+  function handleChange(
+    event
+  ) {
+
+    const {
+      name,
+      value,
+    } =
+      event.target;
+
+
+    setCredentials(
+      (
+        previous
+      ) => ({
+        ...previous,
+
+        [name]:
+          value,
+      })
+    );
+
+
+    if (
+      error
+    ) {
+
+      setError(
+        ""
+      );
+
+    }
+
+  }
+
+
+  async function handleSubmit(
+    event
+  ) {
+
+    event.preventDefault();
+
+
+    if (
+      !credentials
+        .agencyId
+        .trim()
+    ) {
+
+      setError(
+        "Officer ID is required."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      !credentials.password
+    ) {
+
+      setError(
+        "Access key is required."
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+      setLoading(
+        true
+      );
+
+
+      setError(
+        ""
+      );
+
+
+      await login({
+        agencyId:
+          credentials
+            .agencyId
+            .trim(),
+
+        password:
+          credentials
+            .password,
+      });
+
+
+      onLogin();
+
+    } catch (err) {
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Authentication failed"
+      );
+
+    } finally {
+
+      setLoading(
+        false
+      );
+
+    }
+
+  }
+
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Gradient glow effects - Multi-color accent */}
-      <div className="absolute w-[500px] h-[500px] bg-blue-800/10 rounded-full blur-3xl pointer-events-none -top-20 -left-20" />
-      <div className="absolute w-[400px] h-[400px] bg-orange-900/5 rounded-full blur-3xl pointer-events-none -bottom-20 -right-20" />
-      <div className="absolute w-[300px] h-[300px] bg-cyan-900/5 rounded-full blur-3xl pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+    <div
+      className="
+        min-h-screen
+        bg-gradient-to-br
+        from-slate-950
+        via-slate-950
+        to-blue-950
+        flex
+        items-center
+        justify-center
+        px-4
+        py-8
+        relative
+        overflow-hidden
+      "
+    >
 
-      {/* Main Login Card */}
-      <div className="w-full max-w-md bg-slate-900/95 border border-slate-700/50 rounded-xl shadow-2xl backdrop-blur-md p-8 relative z-10">
-        
-        {/* Header & Status Beacon */}
-        {/* Header & Status Beacon */}
-<div className="text-center mb-8">
+      {/* BACKGROUND */}
 
-  {/* Platform Name with accent underline */}
-  <div className="mb-5">
-    <h2 className="text-3xl font-extrabold tracking-[0.25em] text-white">
-      DRISHTIX
-    </h2>
-    <div className="flex gap-2 justify-center mt-2">
-      <div className="w-8 h-0.5 bg-blue-600 rounded-full" />
-      <div className="w-8 h-0.5 bg-orange-600 rounded-full" />
-      <div className="w-8 h-0.5 bg-cyan-600 rounded-full" />
-    </div>
-  </div>
+      <div
+        className="
+          absolute
+          -top-40
+          -left-40
+          w-[500px]
+          h-[500px]
+          rounded-full
+          bg-blue-600/10
+          blur-3xl
+          pointer-events-none
+        "
+      />
 
-  {/* Official Access Badge with enhanced styling */}
-  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-orange-900/30 to-orange-800/20 border border-orange-700/40 text-orange-300 text-xs font-mono tracking-wide uppercase mb-4">
-    <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-    Official Access Portal
-  </div>
 
-  <h1 className="text-2xl font-bold text-white tracking-tight">
-    Disaster Response Command
-  </h1>
+      <div
+        className="
+          absolute
+          -bottom-40
+          -right-40
+          w-[500px]
+          h-[500px]
+          rounded-full
+          bg-orange-600/10
+          blur-3xl
+          pointer-events-none
+        "
+      />
 
-  <p className="text-sm text-slate-400 mt-1">
-    Emergency Operations & Situation Analysis
-  </p>
-  </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Agency ID / Email Input */}
-          <div>
-            <label 
-              htmlFor="agencyId" 
-              className="block text-xs font-medium uppercase tracking-wider text-slate-300 mb-2"
-            >
-              Officer ID / Agency Email
-            </label>
-            <input
-              id="agencyId"
-              name="agencyId"
-              type="text"
-              required
-              value={credentials.agencyId}
-              onChange={handleChange}
-              placeholder="NDRF-8829 / official@gov.in"
-              className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent transition-all"
-            />
-          </div>
+      <div
+        className="
+          w-full
+          max-w-[440px]
+          rounded-2xl
+          border
+          border-slate-700/70
+          bg-slate-950/95
+          shadow-[0_30px_100px_rgba(0,0,0,0.65)]
+          backdrop-blur-xl
+          overflow-hidden
+          relative
+          z-10
+        "
+      >
 
-          {/* Password Input */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label 
-                htmlFor="password" 
-                className="block text-xs font-medium uppercase tracking-wider text-slate-300"
-              >
-                Access Key / Password
-              </label>
-              <a 
-                href="#forgot" 
-                className="text-xs text-orange-400 hover:text-orange-300 transition-colors font-medium"
-              >
-                Reset Key?
-              </a>
-            </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              value={credentials.password}
-              onChange={handleChange}
-              placeholder="••••••••••••"
-              className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent transition-all"
-            />
-          </div>
+        {/* TOP ACCENT */}
 
-          {/* Security Notice */}
-          <div className="bg-gradient-to-r from-orange-900/20 to-orange-800/10 border-l-2 border-orange-600/80 px-3 py-2 rounded-r-md">
-            <p className="text-[11px] leading-relaxed text-slate-300">
-              <span className="text-orange-400 font-semibold">Security Notice:</span> All sessions encrypted & logged for incident auditing.
-            </p>
-          </div>
+        <div className="h-1 flex">
 
-          {/* Action Button */}
-          <button
-            type="submit"
-            className="w-full py-2.5 px-4 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600 text-white font-bold text-sm rounded-lg shadow-lg shadow-orange-950/50 border border-orange-500/40 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all active:scale-[0.99]"
-          >
-            Authenticate Session
-          </button>
-        </form>
+          <div className="flex-1 bg-blue-600" />
 
-        {/* Footer */}
-        <div className="mt-8 pt-6 border-t border-slate-800 text-center">
-          <p className="text-xs text-slate-500 font-mono">
-            SECURE ACCESS LAYER • LEVEL 4 DISPATCH
-          </p>
+          <div className="flex-1 bg-orange-500" />
+
+          <div className="flex-1 bg-cyan-500" />
+
         </div>
+
+
+        <div className="p-7 sm:p-8">
+
+
+          {/* BRAND */}
+
+          <div className="text-center">
+
+            <div
+              className="
+                w-14
+                h-14
+                mx-auto
+                rounded-2xl
+                bg-orange-500/10
+                border
+                border-orange-500/30
+                flex
+                items-center
+                justify-center
+              "
+            >
+
+              <ShieldCheck
+                className="
+                  w-7
+                  h-7
+                  text-orange-500
+                "
+              />
+
+            </div>
+
+
+            <h1
+              className="
+                mt-5
+                text-3xl
+                font-black
+                tracking-[0.18em]
+                text-white
+              "
+            >
+              DRISHTIX
+            </h1>
+
+
+            <p
+              className="
+                mt-2
+                text-sm
+                font-semibold
+                text-slate-200
+              "
+            >
+              Disaster Intelligence Command
+            </p>
+
+
+            <p
+              className="
+                mt-1
+                text-xs
+                text-slate-500
+              "
+            >
+              Human-in-the-loop operational decision support
+            </p>
+
+          </div>
+
+
+          {/* ACCESS BADGE */}
+
+          <div className="flex justify-center mt-5">
+
+            <div
+              className="
+                inline-flex
+                items-center
+                gap-2
+                rounded-full
+                border
+                border-orange-500/25
+                bg-orange-500/10
+                px-3
+                py-1.5
+                text-[10px]
+                font-bold
+                uppercase
+                tracking-widest
+                text-orange-300
+              "
+            >
+
+              <LockKeyhole className="w-3 h-3" />
+
+              Authorized Access
+
+            </div>
+
+          </div>
+
+
+          {/* FORM */}
+
+          <form
+            onSubmit={
+              handleSubmit
+            }
+            className="mt-8 space-y-5"
+          >
+
+
+            {/* AGENCY ID */}
+
+            <div>
+
+              <label
+                htmlFor="agencyId"
+                className="
+                  block
+                  text-[11px]
+                  font-bold
+                  uppercase
+                  tracking-wider
+                  text-slate-400
+                  mb-2
+                "
+              >
+                Officer / Agency ID
+              </label>
+
+
+              <div className="relative">
+
+                <UserRound
+                  className="
+                    absolute
+                    left-3.5
+                    top-1/2
+                    -translate-y-1/2
+                    w-4
+                    h-4
+                    text-slate-500
+                  "
+                />
+
+
+                <input
+                  id="agencyId"
+                  name="agencyId"
+                  type="text"
+                  autoComplete="username"
+                  disabled={
+                    loading
+                  }
+                  value={
+                    credentials.agencyId
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  placeholder="Enter officer ID"
+                  className="
+                    w-full
+                    rounded-xl
+                    border
+                    border-slate-700
+                    bg-slate-900
+                    py-3
+                    pl-10
+                    pr-4
+                    text-sm
+                    text-slate-100
+                    placeholder:text-slate-600
+                    outline-none
+                    transition
+                    focus:border-orange-500
+                    focus:ring-2
+                    focus:ring-orange-500/15
+                    disabled:opacity-60
+                  "
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* PASSWORD */}
+
+            <div>
+
+              <label
+                htmlFor="password"
+                className="
+                  block
+                  text-[11px]
+                  font-bold
+                  uppercase
+                  tracking-wider
+                  text-slate-400
+                  mb-2
+                "
+              >
+                Access Key
+              </label>
+
+
+              <div className="relative">
+
+                <KeyRound
+                  className="
+                    absolute
+                    left-3.5
+                    top-1/2
+                    -translate-y-1/2
+                    w-4
+                    h-4
+                    text-slate-500
+                  "
+                />
+
+
+                <input
+                  id="password"
+                  name="password"
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
+                  autoComplete="current-password"
+                  disabled={
+                    loading
+                  }
+                  value={
+                    credentials.password
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  placeholder="Enter access key"
+                  className="
+                    w-full
+                    rounded-xl
+                    border
+                    border-slate-700
+                    bg-slate-900
+                    py-3
+                    pl-10
+                    pr-11
+                    text-sm
+                    text-slate-100
+                    placeholder:text-slate-600
+                    outline-none
+                    transition
+                    focus:border-orange-500
+                    focus:ring-2
+                    focus:ring-orange-500/15
+                    disabled:opacity-60
+                  "
+                />
+
+
+                <button
+                  type="button"
+                  disabled={
+                    loading
+                  }
+                  onClick={
+                    () =>
+                      setShowPassword(
+                        (
+                          previous
+                        ) =>
+                          !previous
+                      )
+                  }
+                  className="
+                    absolute
+                    right-3
+                    top-1/2
+                    -translate-y-1/2
+                    p-1
+                    rounded
+                    text-slate-500
+                    hover:text-slate-300
+                  "
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                >
+
+                  {
+                    showPassword
+                      ? (
+                        <EyeOff className="w-4 h-4" />
+                      )
+                      : (
+                        <Eye className="w-4 h-4" />
+                      )
+                  }
+
+                </button>
+
+              </div>
+
+            </div>
+
+
+            {/* ERROR */}
+
+            {
+              error &&
+              (
+                <div
+                  className="
+                    rounded-xl
+                    border
+                    border-red-500/30
+                    bg-red-500/10
+                    px-3.5
+                    py-3
+                    text-xs
+                    leading-relaxed
+                    text-red-300
+                  "
+                >
+                  {error}
+                </div>
+              )
+            }
+
+
+            {/* SECURITY INFO */}
+
+            <div
+              className="
+                rounded-xl
+                border
+                border-slate-800
+                bg-slate-900/60
+                px-4
+                py-3
+              "
+            >
+
+              <div className="flex gap-3">
+
+                <LockKeyhole
+                  className="
+                    w-4
+                    h-4
+                    text-cyan-400
+                    mt-0.5
+                    shrink-0
+                  "
+                />
+
+
+                <p
+                  className="
+                    text-[11px]
+                    leading-relaxed
+                    text-slate-400
+                  "
+                >
+                  Access is validated by the DrishtiX backend.
+                  Evidence, fusion, and priority outputs remain
+                  subject to human review.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            {/* SUBMIT */}
+
+            <button
+              type="submit"
+              disabled={
+                loading
+              }
+              className="
+                w-full
+                rounded-xl
+                bg-orange-600
+                hover:bg-orange-500
+                disabled:bg-orange-700
+                disabled:opacity-60
+                py-3
+                px-4
+                text-sm
+                font-extrabold
+                text-white
+                transition
+                shadow-lg
+                shadow-orange-950/30
+                flex
+                items-center
+                justify-center
+                gap-2
+              "
+            >
+
+              {
+                loading
+                  ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+
+                      Authenticating...
+                    </>
+                  )
+                  : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+
+                      Authenticate Session
+                    </>
+                  )
+              }
+
+            </button>
+
+          </form>
+
+
+          {/* FOOTER */}
+
+          <div
+            className="
+              mt-7
+              pt-5
+              border-t
+              border-slate-800
+              text-center
+            "
+          >
+
+            <p
+              className="
+                text-[10px]
+                uppercase
+                tracking-widest
+                text-slate-600
+              "
+            >
+              DrishtiX Operational Access Layer
+            </p>
+
+          </div>
+
+        </div>
+
       </div>
+
     </div>
   );
 }

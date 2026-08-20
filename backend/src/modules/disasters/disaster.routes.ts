@@ -1,5 +1,7 @@
 import { Router } from "express";
-
+import {
+  requireRole,
+} from "../auth/auth.middleware.js";
 import {
   createDisasterController,
   getAllDisastersController,
@@ -11,6 +13,9 @@ export const disasterRouter = Router();
 
 disasterRouter.post(
   "/",
+  requireRole(
+    "COMMANDER"
+  ),
   createDisasterController
 );
 
@@ -26,5 +31,8 @@ disasterRouter.get(
 
 disasterRouter.patch(
   "/:id",
+  requireRole(
+    "COMMANDER"
+  ),
   updateDisasterController
 );

@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   UserRound,
   X,
-  GitMerge
+  GitMerge,
 } from "lucide-react";
 
 
@@ -71,8 +71,6 @@ function clusterMeta(
         className:
           "border-sky-500/30 bg-sky-500/10 text-sky-500",
       };
-
-
     default:
       return {
         label:

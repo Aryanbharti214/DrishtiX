@@ -19,10 +19,38 @@ const envSchema = z.object({
   AI_SERVICE_URL: z
     .string()
     .url("AI_SERVICE_URL must be a valid URL"),
- 
+
   CORS_ORIGIN: z
     .string()
     .default("http://localhost:5173"),
+  DEMO_AGENCY_ID:
+    z.string()
+      .min(1),
+
+  DEMO_PASSWORD:
+    z.string()
+      .min(8),
+
+  VIEWER_AGENCY_ID:
+  z.string().min(1),
+
+VIEWER_PASSWORD:
+  z.string().min(8),
+
+RESPONDER_AGENCY_ID:
+  z.string().min(1),
+
+RESPONDER_PASSWORD:
+  z.string().min(8),
+
+COMMANDER_AGENCY_ID:
+  z.string().min(1),
+
+COMMANDER_PASSWORD:
+  z.string().min(8),
+
+AUTH_TOKEN_SECRET:
+  z.string().min(32),
 });
 
 const result = envSchema.safeParse(process.env);

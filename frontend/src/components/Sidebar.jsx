@@ -87,7 +87,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentDisaster }) {
   return (
     <aside className="w-72 bg-[var(--bg-card)] text-[var(--text-primary)] border-r border-[var(--border-color)] flex flex-col justify-between h-screen sticky top-0 z-40 transition-colors duration-200 shadow-lg select-none">
       <div>
-        {/* Government Portal Header Branding */}
+        
         <div className="p-4 border-b border-[var(--border-color)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2.5">
@@ -107,7 +107,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentDisaster }) {
           </div>
         </div>
 
-        {/* Live Incident Status Card (GovTech Amber / Red State) */}
+        
         <div className="mx-3.5 mt-3.5 p-3 rounded-lg bg-[var(--bg-card-hover)] border border-[var(--border-color)]">
 
           {currentDisaster ? (
@@ -211,7 +211,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentDisaster }) {
         </nav>
       </div>
 
-      {/* System Telemetry Live Footer */}
+      
       <div className="p-3.5 border-t border-[var(--border-color)] flex items-center justify-between font-mono text-xs bg-[var(--bg-card-hover)]">
         <div className="flex items-center space-x-2">
           <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
