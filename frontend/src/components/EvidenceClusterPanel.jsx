@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   UserRound,
   X,
+  GitMerge
 } from "lucide-react";
 
 
@@ -112,6 +113,9 @@ export default function EvidenceClusterPanel({
   cluster,
   onClose,
   onOpenFinding,
+  onGenerateFusion,
+  fusionLoading,
+  fusionError,
 }) {
 
   const meta =
@@ -624,7 +628,88 @@ export default function EvidenceClusterPanel({
           )
         }
 
+{/* FUSION */}
 
+<div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4">
+
+  <div className="flex items-start gap-3">
+
+    <GitMerge className="w-5 h-5 text-cyan-500 mt-0.5" />
+
+
+    <div className="flex-1">
+
+      <p className="font-bold text-sm text-[var(--text-primary)]">
+        Fusion Recommendation
+      </p>
+
+
+      <p className="text-xs text-[var(--text-secondary)] mt-1">
+
+        {
+          cluster.state ===
+          "CORROBORATED"
+            ? "This evidence cluster is eligible for a human-reviewed fusion recommendation."
+            : cluster.state ===
+              "DISPUTED"
+              ? "Resolve disputed evidence before generating a fusion recommendation."
+              : "Fusion requires corroborated evidence."
+        }
+
+      </p>
+
+    </div>
+
+  </div>
+
+
+  {
+    fusionError &&
+    (
+      <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-500">
+        {
+          fusionError
+        }
+      </div>
+    )
+  }
+
+
+  <button
+    type="button"
+    disabled={
+      cluster.state !==
+        "CORROBORATED" ||
+      fusionLoading
+    }
+    onClick={
+      onGenerateFusion
+    }
+    className="
+      mt-4
+      w-full
+      px-4
+      py-2.5
+      rounded-lg
+      bg-cyan-600
+      hover:bg-cyan-700
+      disabled:opacity-40
+      disabled:cursor-not-allowed
+      text-white
+      font-bold
+      text-sm
+    "
+  >
+
+    {
+      fusionLoading
+        ? "Generating..."
+        : "Generate Fusion Recommendation"
+    }
+
+  </button>
+
+</div>
         
 
         <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3">

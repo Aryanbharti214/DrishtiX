@@ -34,14 +34,20 @@ import {
 
 import {
   createManualFinding,
+  generateFusionRecommendation,
   getDisasterFindings,
   getEvidenceClusters,
+  getFindingById,
   getFindingRelations,
+  getFusionRecommendations,
+  reviewFusionRecommendation,
 } from "../services/api";
 import EvidenceIntelligencePanel
   from "../components/EvidenceIntelligencePanel";
 import EvidenceClusterPanel
   from "../components/EvidenceClusterPanel";
+import FusionRecommendationPanel
+  from "../components/FusionRecommendationPanel";
 import {
   useDisaster,
 } from "../context/DisasterContext";
@@ -224,6 +230,12 @@ export default function DisasterMap() {
   } = useDisaster();
 
 
+  /*
+  |--------------------------------------------------------------------------
+  | Data
+  |--------------------------------------------------------------------------
+  */
+
   const [
     findings,
     setFindings,
@@ -309,6 +321,38 @@ const [
   selectedCluster,
   setSelectedCluster,
 ] = useState(null);
+
+
+/*
+|--------------------------------------------------------------------------
+| Fusion Recommendations
+|--------------------------------------------------------------------------
+*/
+
+const [
+  fusionRecommendations,
+  setFusionRecommendations,
+] = useState([]);
+
+
+const [
+  selectedFusionRecommendation,
+  setSelectedFusionRecommendation,
+] = useState(null);
+
+
+const [
+  fusionLoading,
+  setFusionLoading,
+] = useState(false);
+
+
+const [
+  fusionError,
+  setFusionError,
+] = useState("");
+
+
   /*
   |--------------------------------------------------------------------------
   | Filters
@@ -467,6 +511,61 @@ const loadEvidenceClusters =
       currentDisaster?.id,
     ]
   );
+
+const loadFusionRecommendations =
+  useCallback(
+    async () => {
+
+      if (
+        !currentDisaster?.id
+      ) {
+
+        setFusionRecommendations(
+          []
+        );
+
+        return;
+      }
+
+
+      try {
+
+        setFusionError(
+          ""
+        );
+
+
+        const response =
+          await getFusionRecommendations(
+            currentDisaster.id
+          );
+
+
+        setFusionRecommendations(
+          response?.data
+            ?.recommendations ??
+          []
+        );
+
+      } catch (err) {
+
+        setFusionRecommendations(
+          []
+        );
+
+
+        setFusionError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load fusion recommendations"
+        );
+
+      }
+    },
+    [
+      currentDisaster?.id,
+    ]
+  );
   useEffect(() => {
     void loadFindings();
   }, [loadFindings]);
@@ -476,6 +575,13 @@ const loadEvidenceClusters =
     void loadEvidenceClusters();
   }, [
     loadEvidenceClusters,
+  ]);
+
+
+  useEffect(() => {
+    void loadFusionRecommendations();
+  }, [
+    loadFusionRecommendations,
   ]);
 
 
@@ -502,6 +608,18 @@ const loadEvidenceClusters =
     );
 
     setClustersError(
+      ""
+    );
+
+    setFusionRecommendations(
+      []
+    );
+
+    setSelectedFusionRecommendation(
+      null
+    );
+
+    setFusionError(
       ""
     );
 
@@ -603,6 +721,34 @@ const loadEvidenceClusters =
         ),
       [
         evidenceClusters,
+      ]
+    );
+
+
+  const selectedClusterFusionRecommendation =
+    useMemo(
+      () => {
+
+        if (
+          !selectedCluster
+        ) {
+          return null;
+        }
+
+
+        return (
+          fusionRecommendations.find(
+            (recommendation) =>
+              recommendation.clusterId ===
+              selectedCluster.clusterId
+          ) ??
+          null
+        );
+
+      },
+      [
+        fusionRecommendations,
+        selectedCluster,
       ]
     );
 
@@ -812,7 +958,8 @@ const loadEvidenceClusters =
       );
 
 
-await loadEvidenceClusters();
+      await loadEvidenceClusters();
+      await loadFusionRecommendations();
 
       setSuccessMessage(
         "Responder finding added to the live intelligence map."
@@ -904,6 +1051,251 @@ await loadEvidenceClusters();
         }
       },
       []
+    );
+
+
+  const handleGenerateFusion =
+    useCallback(
+      async (
+        cluster
+      ) => {
+
+        if (
+          !currentDisaster?.id ||
+          !cluster
+        ) {
+          return;
+        }
+
+
+        try {
+
+          setFusionLoading(
+            true
+          );
+
+
+          setFusionError(
+            ""
+          );
+
+
+          const response =
+            await generateFusionRecommendation(
+              currentDisaster.id,
+              cluster.anchorFindingId
+            );
+
+
+          const recommendation =
+            response?.data
+              ?.recommendation;
+
+
+          if (
+            !recommendation
+          ) {
+
+            throw new Error(
+              "Backend did not return a fusion recommendation."
+            );
+
+          }
+
+
+          setSelectedFinding(
+            null
+          );
+
+
+          setFindingRelations(
+            []
+          );
+
+
+          setSelectedCluster(
+            null
+          );
+
+
+          setSelectedFusionRecommendation(
+            recommendation
+          );
+
+
+          await loadFusionRecommendations();
+
+        } catch (err) {
+
+          setFusionError(
+            err instanceof Error
+              ? err.message
+              : "Failed to generate fusion recommendation"
+          );
+
+        } finally {
+
+          setFusionLoading(
+            false
+          );
+
+        }
+
+      },
+      [
+        currentDisaster?.id,
+        loadFusionRecommendations,
+      ]
+    );
+
+
+  const handleReviewFusion =
+    useCallback(
+      async (
+        recommendationId,
+        payload
+      ) => {
+
+        try {
+
+          setFusionLoading(
+            true
+          );
+
+
+          setFusionError(
+            ""
+          );
+
+
+          const response =
+            await reviewFusionRecommendation(
+              recommendationId,
+              payload
+            );
+
+
+          const recommendation =
+            response?.data
+              ?.recommendation;
+
+
+          const createdFinding =
+            response?.data
+              ?.finding;
+
+
+          if (
+            !recommendation
+          ) {
+
+            throw new Error(
+              "Backend did not return reviewed recommendation."
+            );
+
+          }
+
+
+          setSelectedFusionRecommendation(
+            recommendation
+          );
+
+
+          await loadFusionRecommendations();
+
+
+          if (
+            createdFinding
+          ) {
+
+            await loadFindings();
+            await loadEvidenceClusters();
+
+          }
+
+        } catch (err) {
+
+          setFusionError(
+            err instanceof Error
+              ? err.message
+              : "Failed to review fusion recommendation"
+          );
+
+        } finally {
+
+          setFusionLoading(
+            false
+          );
+
+        }
+
+      },
+      [
+        loadEvidenceClusters,
+        loadFindings,
+        loadFusionRecommendations,
+      ]
+    );
+
+
+  const handleOpenFusionFinding =
+    useCallback(
+      async (
+        findingId
+      ) => {
+
+        try {
+
+          setFusionError(
+            ""
+          );
+
+
+          const response =
+            await getFindingById(
+              findingId
+            );
+
+
+          const finding =
+            response?.data
+              ?.finding;
+
+
+          if (
+            !finding
+          ) {
+
+            throw new Error(
+              "Backend did not return the FUSION finding."
+            );
+
+          }
+
+
+          setSelectedFusionRecommendation(
+            null
+          );
+
+
+          void loadFindingRelations(
+            finding
+          );
+
+        } catch (err) {
+
+          setFusionError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load FUSION finding"
+          );
+
+        }
+
+      },
+      [
+        loadFindingRelations,
+      ]
     );
 
 
@@ -1097,6 +1489,7 @@ await loadEvidenceClusters();
             onClick={() => {
               void loadFindings();
               void loadEvidenceClusters();
+              void loadFusionRecommendations();
             }}
             disabled={
               loading ||
@@ -2349,11 +2742,58 @@ await loadEvidenceClusters();
               selectedCluster
             }
 
+            existingFusionRecommendation={
+              selectedClusterFusionRecommendation
+            }
+
+            fusionLoading={
+              fusionLoading
+            }
+
+            fusionError={
+              fusionError
+            }
+
             onClose={
-              () =>
+              () => {
+
                 setSelectedCluster(
                   null
+                );
+
+
+                setFusionError(
+                  ""
+                );
+
+              }
+            }
+
+            onGenerateFusion={
+              () =>
+                void handleGenerateFusion(
+                  selectedCluster
                 )
+            }
+
+            onOpenExistingFusion={
+              (recommendation) => {
+
+                setSelectedCluster(
+                  null
+                );
+
+
+                setFusionError(
+                  ""
+                );
+
+
+                setSelectedFusionRecommendation(
+                  recommendation
+                );
+
+              }
             }
 
             onOpenFinding={
@@ -2388,6 +2828,56 @@ await loadEvidenceClusters();
                 );
 
               }
+            }
+          />
+        )
+      }
+
+
+      {
+        selectedFusionRecommendation &&
+        (
+          <FusionRecommendationPanel
+            recommendation={
+              selectedFusionRecommendation
+            }
+
+            loading={
+              fusionLoading
+            }
+
+            error={
+              fusionError
+            }
+
+            onClose={
+              () => {
+
+                setSelectedFusionRecommendation(
+                  null
+                );
+
+
+                setFusionError(
+                  ""
+                );
+
+              }
+            }
+
+            onReview={
+              (payload) =>
+                handleReviewFusion(
+                  selectedFusionRecommendation.id,
+                  payload
+                )
+            }
+
+            onOpenFinding={
+              (findingId) =>
+                void handleOpenFusionFinding(
+                  findingId
+                )
             }
           />
         )

@@ -246,3 +246,52 @@ export async function getEvidenceClusters(
     `/findings/disaster/${disasterId}/clusters`
   );
 }
+
+/*
+|--------------------------------------------------------------------------
+| Fusion Recommendations
+|--------------------------------------------------------------------------
+*/
+
+export async function generateFusionRecommendation(
+  disasterId,
+  anchorFindingId
+) {
+  return apiRequest(
+    `/findings/disaster/${disasterId}/clusters/${anchorFindingId}/fusion-recommendation`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+
+export async function getFusionRecommendations(
+  disasterId
+) {
+  return apiRequest(
+    `/findings/disaster/${disasterId}/fusion-recommendations`
+  );
+}
+
+
+export async function reviewFusionRecommendation(
+  recommendationId,
+  payload
+) {
+  return apiRequest(
+    `/findings/fusion-recommendations/${recommendationId}/review`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body: JSON.stringify(
+        payload
+      ),
+    }
+  );
+}
