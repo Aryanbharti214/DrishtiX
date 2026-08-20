@@ -2,6 +2,9 @@ import {
   Router,
 } from "express";
 import {
+  getDisasterPrioritiesController,
+} from "./finding-priority.controller.js";
+import {
   correlateFindingController,
   getFindingRelationsController,
 } from "./finding-correlation.controller.js";
@@ -84,6 +87,10 @@ findingRouter.get(
 | Fusion recommendations
 |--------------------------------------------------------------------------
 */
+findingRouter.get(
+  "/disaster/:disasterId/priorities",
+  getDisasterPrioritiesController
+);
 
 findingRouter.post(
   "/disaster/:disasterId/clusters/:anchorFindingId/fusion-recommendation",

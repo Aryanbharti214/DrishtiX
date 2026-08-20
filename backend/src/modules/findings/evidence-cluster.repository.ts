@@ -11,23 +11,33 @@ import type {
 
 interface FindingRow {
   id: string;
+
   disaster_id: string;
+
   finding_type: string;
+
   severity:
-  string | null;
+    string | null;
+
   source: string;
+
   verification_status:
-  string;
+    string;
+
   title:
-  string | null;
+    string | null;
+
   description:
-  string | null;
+    string | null;
+
   latitude:
-  number | null;
+    number | null;
+
   longitude:
-  number | null;
+    number | null;
+
   created_at:
-  Date;
+    Date;
 }
 
 
@@ -41,10 +51,10 @@ interface RelationRow {
   relation_type: string;
 
   distance_meters:
-  number | string;
+    number | string;
 
   score:
-  number | string;
+    number | string;
 }
 
 
@@ -80,10 +90,7 @@ export async function findClusterFindingsByDisaster(
           AND location
               IS NOT NULL
 
-        ORDER BY
-          created_at ASC
-
-         AND source <> 'FUSION'
+          AND source <> 'FUSION'
 
         ORDER BY
           created_at ASC

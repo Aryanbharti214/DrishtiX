@@ -295,3 +295,18 @@ export async function reviewFusionRecommendation(
     }
   );
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| Operational Priorities
+|--------------------------------------------------------------------------
+*/
+
+export async function getDisasterPriorities(
+  disasterId
+) {
+  return apiRequest(
+    `/findings/disaster/${disasterId}/priorities`
+  );
+}
