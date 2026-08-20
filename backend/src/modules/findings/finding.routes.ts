@@ -17,7 +17,11 @@ import {
   verifyFindingController,
 } from "./finding.controller.js";
 
-
+import {
+  generateFusionRecommendationController,
+  getFusionRecommendationsController,
+  reviewFusionRecommendationController,
+} from "./fusion-recommendation.controller.js";
 export const findingRouter =
   Router();
 
@@ -75,7 +79,28 @@ findingRouter.get(
   "/:id/relations",
   getFindingRelationsController
 );
+/*
+|--------------------------------------------------------------------------
+| Fusion recommendations
+|--------------------------------------------------------------------------
+*/
 
+findingRouter.post(
+  "/disaster/:disasterId/clusters/:anchorFindingId/fusion-recommendation",
+  generateFusionRecommendationController
+);
+
+
+findingRouter.get(
+  "/disaster/:disasterId/fusion-recommendations",
+  getFusionRecommendationsController
+);
+
+
+findingRouter.post(
+  "/fusion-recommendations/:id/review",
+  reviewFusionRecommendationController
+);
 findingRouter.get(
   "/:id",
   getFindingByIdController
