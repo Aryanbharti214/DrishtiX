@@ -1,68 +1,121 @@
 import "dotenv/config";
-import { z } from "zod";
 
-const envSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
+import {
+  z,
+} from "zod";
 
-  PORT: z.coerce
-    .number()
-    .int()
-    .positive()
-    .default(4000),
 
-  DATABASE_URL: z
-    .string()
-    .min(1, "DATABASE_URL is required"),
+const envSchema =
+  z.object({
 
-  AI_SERVICE_URL: z
-    .string()
-    .url("AI_SERVICE_URL must be a valid URL"),
+    NODE_ENV:
+      z.enum([
+        "development",
+        "test",
+        "production",
+      ])
+        .default(
+          "development"
+        ),
 
-  CORS_ORIGIN: z
-    .string()
-    .default("http://localhost:5173"),
-  DEMO_AGENCY_ID:
-    z.string()
-      .min(1),
 
-  DEMO_PASSWORD:
-    z.string()
-      .min(8),
+    PORT:
+      z.coerce
+        .number()
+        .int()
+        .positive()
+        .default(
+          4000
+        ),
 
-  VIEWER_AGENCY_ID:
-  z.string().min(1),
 
-VIEWER_PASSWORD:
-  z.string().min(8),
+    DATABASE_URL:
+      z.string()
+        .min(
+          1,
+          "DATABASE_URL is required"
+        ),
 
-RESPONDER_AGENCY_ID:
-  z.string().min(1),
 
-RESPONDER_PASSWORD:
-  z.string().min(8),
+    AI_SERVICE_URL:
+      z.string()
+        .url(
+          "AI_SERVICE_URL must be a valid URL"
+        ),
 
-COMMANDER_AGENCY_ID:
-  z.string().min(1),
 
-COMMANDER_PASSWORD:
-  z.string().min(8),
+    CORS_ORIGIN:
+      z.string()
+        .default(
+          "http://localhost:5173"
+        ),
 
-AUTH_TOKEN_SECRET:
-  z.string().min(32),
-});
 
-const result = envSchema.safeParse(process.env);
+    VIEWER_AGENCY_ID:
+      z.string()
+        .min(1),
 
-if (!result.success) {
-  console.error("Invalid environment variables:");
 
-  console.error(
-    result.error.flatten().fieldErrors
+    VIEWER_PASSWORD:
+      z.string()
+        .min(8),
+
+
+    RESPONDER_AGENCY_ID:
+      z.string()
+        .min(1),
+
+
+    RESPONDER_PASSWORD:
+      z.string()
+        .min(8),
+
+
+    COMMANDER_AGENCY_ID:
+      z.string()
+        .min(1),
+
+
+    COMMANDER_PASSWORD:
+      z.string()
+        .min(8),
+
+
+    AUTH_TOKEN_SECRET:
+      z.string()
+        .min(32),
+
+  });
+
+
+const result =
+  envSchema.safeParse(
+    process.env
   );
 
-  process.exit(1);
+
+if (
+  !result.success
+) {
+
+  console.error(
+    "Invalid environment variables:"
+  );
+
+
+  console.error(
+    result.error
+      .flatten()
+      .fieldErrors
+  );
+
+
+  process.exit(
+    1
+  );
+
 }
 
-export const env = result.data;
+
+export const env =
+  result.data;
