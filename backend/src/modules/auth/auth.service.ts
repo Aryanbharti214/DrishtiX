@@ -14,11 +14,7 @@ import {
 } from "../../utils/app-error.js";
 
 
-/*
-|--------------------------------------------------------------------------
-| Roles
-|--------------------------------------------------------------------------
-*/
+
 
 export const AUTH_ROLES = [
   "VIEWER",
@@ -31,11 +27,7 @@ export type AuthRole =
   typeof AUTH_ROLES[number];
 
 
-/*
-|--------------------------------------------------------------------------
-| Session
-|--------------------------------------------------------------------------
-*/
+
 
 export interface SessionPayload {
   sub: string;
@@ -52,25 +44,7 @@ const TOKEN_TTL_SECONDS =
   8 * 60 * 60;
 
 
-/*
-|--------------------------------------------------------------------------
-| Demo accounts
-|--------------------------------------------------------------------------
-|
-| These credentials come from .env.
-|
-| This is intentionally a small demonstration
-| authentication layer.
-|
-| Production should use:
-|
-| users table
-| password hashing
-| account lifecycle
-| token revocation
-| MFA / SSO where appropriate
-|--------------------------------------------------------------------------
-*/
+
 
 const accounts: Array<{
   agencyId: string;
@@ -118,11 +92,6 @@ const accounts: Array<{
 ];
 
 
-/*
-|--------------------------------------------------------------------------
-| Constant-time comparison
-|--------------------------------------------------------------------------
-*/
 
 function safeEqual(
   firstValue: string,
@@ -229,11 +198,7 @@ function signPayload(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Create session token
-|--------------------------------------------------------------------------
-*/
+
 
 function createSessionToken(
   agencyId: string,
@@ -275,12 +240,6 @@ function createSessionToken(
   );
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Authenticate credentials
-|--------------------------------------------------------------------------
-*/
 
 export function authenticateOfficer(
   agencyId: string,
@@ -361,11 +320,6 @@ export function authenticateOfficer(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Validate decoded payload
-|--------------------------------------------------------------------------
-*/
 
 function validateSessionPayload(
   value: unknown
@@ -456,11 +410,6 @@ function validateSessionPayload(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Verify session token
-|--------------------------------------------------------------------------
-*/
 
 export function verifySessionToken(
   token: string

@@ -41,10 +41,7 @@ export async function verifyFindingService(
   }
 
 
-  /*
-   * Read using our normal finding
-   * mapper after transaction commits.
-   */
+ 
 
   const finding =
     await findFindingById(

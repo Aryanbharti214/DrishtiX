@@ -155,11 +155,7 @@ function mapVerification(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Complete verification transaction
-|--------------------------------------------------------------------------
-*/
+
 
 export async function verifyFindingTransaction(
   findingId: string,
@@ -221,11 +217,7 @@ export async function verifyFindingTransaction(
       FindingDatabaseRow;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | CONFIRM
-    |--------------------------------------------------------------------------
-    */
+  
 
     if (
       input.decision ===
@@ -297,11 +289,7 @@ export async function verifyFindingTransaction(
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | CORRECT
-    |--------------------------------------------------------------------------
-    */
+    
 
     else {
 
@@ -396,11 +384,6 @@ export async function verifyFindingTransaction(
       );
 
 
-    /*
-     * Every decision creates an
-     * immutable audit event.
-     */
-
     const verificationResult =
       await client
         .query<VerificationRow>(
@@ -476,13 +459,6 @@ export async function verifyFindingTransaction(
 
   }
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Verification history
-|--------------------------------------------------------------------------
-*/
 
 export async function findVerificationHistory(
   findingId: string

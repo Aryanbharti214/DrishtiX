@@ -415,20 +415,7 @@ export async function reviewFusionRecommendationTransaction(
       null;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | APPROVE
-    |--------------------------------------------------------------------------
-    |
-    | Human approval promotes the synthesis
-    | into a FUSION finding.
-    |
-    | The new finding remains PENDING so that
-    | the normal finding verification workflow
-    | still applies.
-    |--------------------------------------------------------------------------
-    */
-
+  
     if (
       input.decision ===
       "APPROVED"

@@ -26,14 +26,7 @@ export const findingSources = [
 ] as const;
 
 
-/*
-|--------------------------------------------------------------------------
-| Generic CV detections
-|--------------------------------------------------------------------------
-|
-| Raw object detection != disaster finding.
-|
-*/
+
 
 export const rawDetectionSchema =
   z.object({
@@ -59,11 +52,7 @@ export const rawDetectionSchema =
   });
 
 
-/*
-|--------------------------------------------------------------------------
-| AI-created disaster finding
-|--------------------------------------------------------------------------
-*/
+
 
 export const aiFindingSchema =
   z.object({
@@ -121,11 +110,7 @@ export const aiFindingSchema =
   });
 
 
-/*
-|--------------------------------------------------------------------------
-| Manual responder finding
-|--------------------------------------------------------------------------
-*/
+
 
 export const createManualFindingSchema =
   z.object({
@@ -173,12 +158,6 @@ export const createManualFindingSchema =
         .max(180),
   });
 
-
-/*
-|--------------------------------------------------------------------------
-| FastAPI analysis response
-|--------------------------------------------------------------------------
-*/
 
 export const aiAnalysisResponseSchema =
   z.object({
@@ -246,11 +225,6 @@ export type CreateManualFindingInput =
 
 
 
-  /*
-|--------------------------------------------------------------------------
-| Human verification
-|--------------------------------------------------------------------------
-*/
 
 const findingCorrectionSchema =
   z.object({

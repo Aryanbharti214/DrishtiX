@@ -76,11 +76,7 @@ export async function analyzeImageWithAI(
           ...form.getHeaders(),
         },
 
-        /*
-         * AI inference can take
-         * considerably longer than
-         * a health check.
-         */
+    
         timeout: 30_000,
 
         maxBodyLength:

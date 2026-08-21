@@ -68,19 +68,12 @@ export async function getFindingsByImageryService(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Create responder finding
-|--------------------------------------------------------------------------
-*/
 
 export async function createManualFindingService(
   input: CreateManualFindingInput
 ) {
 
-  /*
-   * Ensure disaster exists.
-   */
+  
 
   const disaster =
     await findDisasterById(
@@ -97,12 +90,7 @@ export async function createManualFindingService(
   }
 
 
-  /*
-   * Imagery is optional.
-   *
-   * If supplied, make sure that image
-   * actually belongs to this disaster.
-   */
+  
 
   if (input.imageryId) {
 

@@ -186,18 +186,7 @@ export async function generateFusionRecommendationService(
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Dominant finding type
-  |--------------------------------------------------------------------------
-  |
-  | Trusted findings receive weight 2.
-  | Pending findings receive weight 1.
-  |
-  | This is deterministic evidence weighting,
-  | not ML probability.
-  |--------------------------------------------------------------------------
-  */
+
 
   const typeScores =
     new Map<
@@ -349,17 +338,6 @@ export async function generateFusionRecommendationService(
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Severity
-  |--------------------------------------------------------------------------
-  |
-  | Prefer trusted matching evidence.
-  |
-  | If none are verified yet, use active
-  | dominant evidence.
-  |--------------------------------------------------------------------------
-  */
 
   const trustedDominantMembers =
     dominantMembers.filter(
@@ -413,11 +391,7 @@ export async function generateFusionRecommendationService(
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Spatial center of supporting claim
-  |--------------------------------------------------------------------------
-  */
+  
 
   const latitude =
     dominantMembers.reduce(
@@ -475,16 +449,6 @@ export async function generateFusionRecommendationService(
         member.verificationStatus ===
         "PENDING"
     ).length;
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | Transparent support score
-  |--------------------------------------------------------------------------
-  |
-  | NOT a probability.
-  |--------------------------------------------------------------------------
-  */
 
   let supportScore =
     0.40;
@@ -563,11 +527,7 @@ export async function generateFusionRecommendationService(
     );
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Evidence signature
-  |--------------------------------------------------------------------------
-  */
+
 
   const signaturePayload = {
     activeMembers:

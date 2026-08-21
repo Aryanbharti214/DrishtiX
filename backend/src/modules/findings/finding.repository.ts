@@ -120,11 +120,6 @@ function mapFinding(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| AI finding creation
-|--------------------------------------------------------------------------
-*/
 
 interface CreateFindingInput {
   disasterId: string;
@@ -220,11 +215,6 @@ export async function createFinding(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Manual responder finding
-|--------------------------------------------------------------------------
-*/
 
 export async function createManualFinding(
   input: CreateManualFindingInput
@@ -300,11 +290,6 @@ export async function createManualFinding(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Queries
-|--------------------------------------------------------------------------
-*/
 
 export async function findFindingsByImagery(
   imageryId: string

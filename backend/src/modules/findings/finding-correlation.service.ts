@@ -57,24 +57,6 @@ function roundScore(
   ) / 100;
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Classify one pair
-|--------------------------------------------------------------------------
-|
-| Different finding types are NOT automatically conflicts.
-|
-| Example:
-|
-| BUILDING_DAMAGE
-| +
-| ROAD_BLOCKAGE
-|
-| can both be true at the same location.
-|--------------------------------------------------------------------------
-*/
-
 function classifyPair(
   target: {
     id: string;
@@ -157,14 +139,6 @@ function classifyPair(
     "";
 
 
-  /*
-   * Actual contradiction:
-   *
-   * same claim,
-   * same approximate location,
-   * one accepted/corrected,
-   * one explicitly rejected.
-   */
 
   if (
     sameType
@@ -210,25 +184,6 @@ function classifyPair(
   }
 
 
-  /*
-   * Possible duplicate report.
-   *
-   * Same source TYPE does not prove
-   * same human reporter.
-   *
-   * Therefore this remains
-   * POSSIBLE_DUPLICATE,
-   * never automatic deletion.
-   */
-  /*
- * Rejected evidence must never
- * become corroboration or duplicate
- * support.
- *
- * A rejected + trusted same-type
- * pair was already handled above
- * as DISPUTED.
- */
 
 else if (
   targetRejected
@@ -285,10 +240,6 @@ else if (
 
   }
 
-
-  /*
-   * Corroboration.
-   */
 
   else if (
     sameType
@@ -467,12 +418,6 @@ else if (
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Rebuild relationships
-|--------------------------------------------------------------------------
-*/
-
 export async function correlateFindingService(
   findingId: string
 ) {
@@ -585,11 +530,6 @@ export async function correlateFindingService(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Read persisted relationships
-|--------------------------------------------------------------------------
-*/
 
 export async function getFindingRelationsService(
   findingId: string
@@ -616,21 +556,7 @@ export async function getFindingRelationsService(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Best-effort derived intelligence refresh
-|--------------------------------------------------------------------------
-|
-| Correlation is derived data.
-|
-| A correlation failure must NEVER cause:
-|
-| - responder finding creation to fail
-| - human verification to fail
-| - successful AI analysis to be marked FAILED
-|
-|--------------------------------------------------------------------------
-*/
+
 
 export async function refreshFindingCorrelationBestEffort(
   findingId: string

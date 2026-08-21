@@ -58,20 +58,7 @@ type SeedFinding = {
 const findingsToSeed:
   SeedFinding[] = [
 
-    /*
-    |--------------------------------------------------------------------------
-    | CLUSTER A
-    |--------------------------------------------------------------------------
-    |
-    | Expected:
-    | CORROBORATED
-    |
-    | - responder + synthetic demo AI
-    | - same ROAD_BLOCKAGE type
-    | - spatially close
-    | - one possible duplicate
-    |
-    */
+  
 
     {
       key:
@@ -172,21 +159,7 @@ const findingsToSeed:
     },
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | CLUSTER B
-    |--------------------------------------------------------------------------
-    |
-    | Expected:
-    | DISPUTED
-    |
-    | Same claim/location:
-    |
-    | confirmed responder
-    | vs
-    | rejected synthetic AI observation
-    |
-    */
+
 
     {
       key:
@@ -254,18 +227,6 @@ const findingsToSeed:
     },
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | CLUSTER C
-    |--------------------------------------------------------------------------
-    |
-    | Expected:
-    | RELATED
-    |
-    | Different phenomena near each other.
-    |
-    */
-
     {
       key:
         "POWER_OUTAGE",
@@ -332,11 +293,7 @@ const findingsToSeed:
     },
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | ISOLATED FINDING
-    |--------------------------------------------------------------------------
-    */
+
 
     {
       key:
@@ -401,14 +358,6 @@ async function main() {
     );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Remove ONLY the previous DrishtiX demo
-    |--------------------------------------------------------------------------
-    |
-    | Never touch real disasters.
-    |
-    */
 
     const existingDemo =
       await client.query<{
@@ -469,11 +418,6 @@ async function main() {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Disaster
-    |--------------------------------------------------------------------------
-    */
 
     const disasterResult =
       await client.query<{
@@ -515,12 +459,6 @@ async function main() {
         .rows[0]!
         .id;
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Findings
-    |--------------------------------------------------------------------------
-    */
 
     for (
       const item
@@ -635,15 +573,6 @@ async function main() {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Verification history
-    |--------------------------------------------------------------------------
-    |
-    | The statuses above create the current state.
-    | These entries make the audit timeline realistic as well.
-    |
-    */
 
     const verifiedItems = [
       {
@@ -761,17 +690,6 @@ async function main() {
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Build spatial relationships
-  |--------------------------------------------------------------------------
-  |
-  | Use the actual DrishtiX correlation engine.
-  |
-  | We DO NOT manually fake finding_relations.
-  |
-  */
-
   console.log(
     "Generating spatial evidence relationships..."
   );
@@ -798,11 +716,6 @@ async function main() {
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Verify derived clusters
-  |--------------------------------------------------------------------------
-  */
 
   const clusterResult =
     await getEvidenceClustersService(
@@ -923,7 +836,7 @@ main()
         await db.end();
 
       } catch {
-        // Ignore shutdown error.
+     
       }
 
 

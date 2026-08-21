@@ -108,12 +108,7 @@ function getClusterScore(
     state
   ) {
 
-    /*
-     * DISPUTED is high because
-     * contradictory evidence requires
-     * rapid human review.
-     */
-
+  
     case "DISPUTED":
       return 18;
 
@@ -210,12 +205,7 @@ export async function getDisasterPrioritiesService(
 
   const priorities =
     findings
-      /*
-       * Rejected findings stay in
-       * the audit system but should
-       * not compete in the active
-       * inspection queue.
-       */
+   
       .filter(
         (finding) =>
           finding
@@ -290,15 +280,7 @@ export async function getDisasterPrioritiesService(
             );
 
 
-          /*
-           * A human-approved FUSION
-           * finding still requires
-           * normal verification.
-           *
-           * Pending fusion therefore
-           * receives inspection urgency.
-           */
-
+        
           const fusionReviewScore =
             (
               finding.source ===

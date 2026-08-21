@@ -107,16 +107,6 @@ interface RelationRow {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Find spatial candidates
-|--------------------------------------------------------------------------
-|
-| Only findings belonging to the SAME disaster
-| can be correlated.
-|
-*/
-
 export async function findNearbyFindings(
   findingId: string,
   radiusMeters: number
@@ -240,18 +230,6 @@ export async function findNearbyFindings(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Replace all relationships for one finding
-|--------------------------------------------------------------------------
-|
-| This is intentional.
-|
-| If a human corrects a finding's location/type later,
-| old spatial relationships must disappear rather than
-| remain stale.
-|--------------------------------------------------------------------------
-*/
 
 export async function replaceFindingRelations(
   findingId: string,
@@ -367,11 +345,7 @@ export async function replaceFindingRelations(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Read relationships for UI/API
-|--------------------------------------------------------------------------
-*/
+
 
 export async function findRelationsForFinding(
   findingId: string
