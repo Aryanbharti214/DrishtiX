@@ -90,3 +90,37 @@ export async function analyzeImageWithAI(
 
   return response.data;
 }
+
+
+export async function fetchAIResultImage(
+  resultPath: string
+): Promise<Buffer> {
+
+  if (
+    !resultPath.startsWith(
+      "/api/v1/analyze/"
+    )
+  ) {
+    throw new Error(
+      "Invalid AI result image path"
+    );
+  }
+
+
+  const response =
+    await aiClient.get(
+      resultPath,
+      {
+        responseType:
+          "arraybuffer",
+
+        timeout:
+          30_000,
+      }
+    );
+
+
+  return Buffer.from(
+    response.data
+  );
+}

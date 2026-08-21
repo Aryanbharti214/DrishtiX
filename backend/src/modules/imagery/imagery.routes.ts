@@ -16,6 +16,7 @@ import {
 import {
   analyzeImageryController,
   getDisasterImageryController,
+  getImageryAnalysisController,
   getImageryByIdController,
   uploadImageryController,
 } from "./imagery.controller.js";
@@ -61,7 +62,10 @@ imageryRouter.get(
   "/disaster/:disasterId",
   getDisasterImageryController
 );
-
+imageryRouter.get(
+  "/:id/analysis",
+  getImageryAnalysisController
+);
 
 imageryRouter.get(
   "/:id",
