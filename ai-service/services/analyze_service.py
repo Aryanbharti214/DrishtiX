@@ -10,6 +10,9 @@ from services.model_service import (
     generate_segmentation_overlay,
     run_inference,
 )
+from services.priority_service import (
+    calculate_priority,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -61,6 +64,9 @@ async def analyze_image(
         findings = convert_segmentation_to_findings(
             result
         )
+        priority = calculate_priority(
+           findings
+        )
 
         # ----------------------------------------------------
         # SEGMENTATION OVERLAY
@@ -81,14 +87,15 @@ async def analyze_image(
     ) * 1000
 
     return {
-        "model_name": MODEL_NAME,
-        "model_version": MODEL_VERSION,
-        "processing_time_ms": round(
-            processing_time_ms,
-            2,
-        ),
-        "result_image": (
-            f"/api/v1/analyze/{image_id}/result"
-        ),
-        "findings": findings,
-    }
+    "model_name": MODEL_NAME,
+    "model_version": MODEL_VERSION,
+    "processing_time_ms": round(
+        processing_time_ms,
+        2,
+    ),
+    "result_image": (
+        f"/api/v1/analyze/{image_id}/result"
+    ),
+    "priority": priority,
+    "findings": findings,
+}

@@ -6,8 +6,6 @@ from fastapi import (
     UploadFile,
 )
 
-from pathlib import Path
-
 from fastapi.responses import FileResponse
 
 from services.analyze_service import (
@@ -16,7 +14,6 @@ from services.analyze_service import (
 )
 
 from schemas.analyze import AnalyzeResponse
-from services.analyze_service import analyze_image
 
 
 router = APIRouter(
