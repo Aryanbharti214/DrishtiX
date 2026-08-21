@@ -360,11 +360,7 @@ export async function getDisaster(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Imagery
-|--------------------------------------------------------------------------
-*/
+
 
 export async function analyzeImagery(
   imageryId

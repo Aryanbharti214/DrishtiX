@@ -13,18 +13,20 @@ RUN apt-get update \
         libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
+COPY requirements-deploy.txt ./requirements.txt
 
 RUN pip install \
     --no-cache-dir \
     -r requirements.txt
 
-# Cache YOLO weights during image build.
-RUN python -c \
-    "from ultralytics import YOLO; YOLO('yolo26n.pt')"
-
 COPY . .
+
+RUN test -f /app/models/best.pt
+
+RUN mkdir -p \
+    /app/temp \
+    /app/analysis_results
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]
