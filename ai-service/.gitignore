@@ -7,10 +7,15 @@ __pycache__/
 .env
 
 # Model weights
-*.pt
 *.pth
 *.onnx
 *.ckpt
+
+# Development/pretrained weights
+/yolo26n-sem.pt
+/yolo26n.pt
+
+
 
 # Runtime files
 uploads/
@@ -30,3 +35,5 @@ drishtix_runs/
 
 # Logs
 *.log
+
+analysis_results/
