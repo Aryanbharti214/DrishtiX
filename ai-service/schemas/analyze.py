@@ -1,118 +1,31 @@
-from typing import Any, Literal
+from typing import Any
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-)
-
-
-class ModelInfo(BaseModel):
-    name: str
-    version: str
-
-
-class RawDetection(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True
-    )
-
-    class_id: int = Field(
-        alias="classId",
-        ge=0,
-    )
-
-    class_name: str = Field(
-        alias="className",
-        min_length=1,
-    )
-
-    confidence: float = Field(
-        ge=0.0,
-        le=1.0,
-    )
-
-    bbox: list[float] = Field(
-        min_length=4,
-        max_length=4,
-    )
+from pydantic import BaseModel, Field
 
 
 class Finding(BaseModel):
-    type: Literal[
-        "BUILDING_DAMAGE",
-        "ROAD_BLOCKAGE",
-        "INFRASTRUCTURE_DAMAGE",
-        "SERVICE_DISRUPTION",
-    ]
 
-    severity: (
-        Literal[
-            "LOW",
-            "MODERATE",
-            "SEVERE",
-            "CRITICAL",
-        ]
-        | None
-    ) = None
+    type: str
 
-    title: str | None = None
-    description: str | None = None
+    severity: str
 
-    confidence: float = Field(
+    pixel_count: int = Field(
+        ge=0
+    )
+
+    area_percentage: float = Field(
         ge=0.0,
-        le=1.0,
+        le=100.0,
     )
 
-    latitude: float | None = Field(
-        default=None,
-        ge=-90,
-        le=90,
-    )
-
-    longitude: float | None = Field(
-        default=None,
-        ge=-180,
-        le=180,
-    )
-
-    bbox: list[float] | None = Field(
-        default=None,
-        min_length=4,
-        max_length=4,
-    )
+    bbox: list[float] | None = None
 
     prediction: dict[str, Any]
 
 
 class AnalyzeResponse(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True
-    )
-
-    image_id: str = Field(
-        alias="imageId",
-        min_length=1,
-    )
-
-    analysis_type: Literal[
-        "GENERIC_OBJECT_DETECTION",
-        "DISASTER_DAMAGE_ASSESSMENT",
-    ] = Field(
-        alias="analysisType"
-    )
-
-    model: ModelInfo
-
-    processing_time_ms: float = Field(
-        alias="processingTimeMs",
-        ge=0,
-    )
-
-    detections: list[RawDetection] = Field(
-        default_factory=list
-    )
-
-    findings: list[Finding] = Field(
-        default_factory=list
-    )
+    model_name: str
+    model_version: str
+    processing_time_ms: float
+    result_image: str
+    findings: list[Finding]

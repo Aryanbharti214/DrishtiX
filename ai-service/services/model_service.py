@@ -1,88 +1,236 @@
+from pathlib import Path
+
+import numpy as np
 from ultralytics import YOLO
 
 
-MODEL_NAME = "yolo26n"
-MODEL_VERSION = "0.1.0"
+# ============================================================
+# MODEL CONFIGURATION
+# ============================================================
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+MODEL_PATH = BASE_DIR / "models" / "best.pt"
+
+MODEL_NAME = "floodnet-yolo26n-sem"
+MODEL_VERSION = "1.0.0"
+
+model = YOLO(str(MODEL_PATH))
 
 
-model = YOLO(
-    "yolo26n.pt"
-)
+# ============================================================
+# CLASS NAMES
+# ============================================================
+
+CLASS_NAMES = {
+    0: "Background",
+    1: "Building-flooded",
+    2: "Building-non-flooded",
+    3: "Road-flooded",
+    4: "Road-non-flooded",
+    5: "Water",
+    6: "Tree",
+    7: "Vehicle",
+    8: "Pool",
+    9: "Grass",
+}
 
 
-def run_inference(
-    image_path: str,
-):
+FLOODED_CLASSES = {
+    1,
+    3,
+}
+
+
+# ============================================================
+# RUN SEMANTIC SEGMENTATION
+# ============================================================
+
+def run_inference(image_path: str):
+
     results = model.predict(
         source=image_path,
         imgsz=640,
-        conf=0.25,
         verbose=False,
     )
 
     return results[0]
 
 
-def convert_detections(
-    result,
-):
-    detections = []
+# ============================================================
+# SEVERITY
+# ============================================================
+
+def calculate_severity(area_percentage: float) -> str:
+
+    if area_percentage >= 30:
+        return "critical"
+
+    if area_percentage >= 15:
+        return "high"
+
+    if area_percentage >= 5:
+        return "medium"
+
+    return "low"
 
 
-    if result.boxes is None:
-        return detections
+# ============================================================
+# CONVERT SEGMENTATION TO FINDINGS
+# ============================================================
 
+def convert_segmentation_to_findings(result):
 
-    for (
-        box,
-        confidence,
-        class_id,
-    ) in zip(
-        result.boxes.xyxy,
-        result.boxes.conf,
-        result.boxes.cls,
-    ):
+    semantic_mask = (
+        result.semantic_mask.data
+        .cpu()
+        .numpy()
+    )
 
-        class_id_value = int(
-            class_id
+    # Remove unnecessary dimensions if present
+    semantic_mask = np.squeeze(semantic_mask)
+
+    total_pixels = semantic_mask.size
+
+    findings = []
+
+    for class_id, class_name in CLASS_NAMES.items():
+
+        pixel_count = int(
+            np.sum(semantic_mask == class_id)
         )
 
+        if pixel_count == 0:
+            continue
 
-        confidence_value = float(
-            confidence
+        area_percentage = (
+            pixel_count / total_pixels
+        ) * 100
+
+        # ----------------------------------------------------
+        # Bounding box of this semantic class
+        # ----------------------------------------------------
+
+        ys, xs = np.where(
+            semantic_mask == class_id
         )
 
+        bbox = None
 
-        coordinates = [
-            float(value)
-            for value
-            in box
-        ]
+        if len(xs) > 0:
 
-
-        class_name = (
-            result.names[
-                class_id_value
+            bbox = [
+                float(xs.min()),
+                float(ys.min()),
+                float(xs.max()),
+                float(ys.max()),
             ]
+
+        # ----------------------------------------------------
+        # Severity
+        # ----------------------------------------------------
+
+        if class_id in FLOODED_CLASSES:
+
+            severity = calculate_severity(
+                area_percentage
+            )
+
+        else:
+
+            severity = "informational"
+
+        findings.append(
+            {
+                "type": class_name,
+                "severity": severity,
+                "pixel_count": pixel_count,
+                "area_percentage": round(
+                    area_percentage,
+                    2,
+                ),
+                "bbox": bbox,
+                "prediction": {
+                    "class_id": class_id,
+                    "class_name": class_name,
+                    "source": "floodnet_semantic_segmentation",
+                },
+            }
         )
 
+    return findings
 
-        detections.append({
-            "classId":
-                class_id_value,
+def generate_segmentation_overlay(
+    result,
+    original_image_path: Path,
+    output_path: Path,
+):
+    """
+    Generate a colored semantic-segmentation overlay
+    from the model prediction.
+    """
 
-            "className":
-                class_name,
+    import cv2
 
-            "confidence":
-                round(
-                    confidence_value,
-                    4,
-                ),
+    semantic_mask = (
+        result.semantic_mask.data
+        .cpu()
+        .numpy()
+    )
 
-            "bbox":
-                coordinates,
-        })
+    semantic_mask = np.squeeze(
+        semantic_mask
+    )
 
+    image = cv2.imread(
+        str(original_image_path)
+    )
 
-    return detections
+    if image is None:
+        raise ValueError(
+            "Could not read original image for overlay."
+        )
+
+    height, width = image.shape[:2]
+
+    mask = cv2.resize(
+        semantic_mask.astype(np.uint8),
+        (width, height),
+        interpolation=cv2.INTER_NEAREST,
+    )
+
+    colors = np.array(
+        [
+            [0, 0, 0],        # Background
+            [255, 0, 0],      # Building flooded
+            [0, 255, 0],      # Building non-flooded
+            [255, 100, 0],    # Road flooded
+            [100, 100, 100],  # Road non-flooded
+            [0, 0, 255],      # Water
+            [0, 255, 255],    # Tree
+            [255, 0, 255],    # Vehicle
+            [255, 255, 0],    # Pool
+            [0, 180, 0],      # Grass
+        ],
+        dtype=np.uint8,
+    )
+
+    colored_mask = colors[mask]
+
+    overlay = cv2.addWeighted(
+        image,
+        0.55,
+        colored_mask,
+        0.45,
+        0,
+    )
+
+    success = cv2.imwrite(
+        str(output_path),
+        overlay,
+    )
+
+    if not success:
+        raise ValueError(
+            "Failed to save segmentation overlay."
+        )
