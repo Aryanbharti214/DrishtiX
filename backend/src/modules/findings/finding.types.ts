@@ -42,7 +42,8 @@ export const rawDetectionSchema =
     confidence:
       z.number()
         .min(0)
-        .max(1),
+        .max(1)
+        .optional(),
 
     bbox:
       z.array(
@@ -81,7 +82,9 @@ export const aiFindingSchema =
     confidence:
       z.number()
         .min(0)
-        .max(1),
+        .max(1)
+        .optional(),
+
 
     latitude:
       z.number()
@@ -158,6 +161,95 @@ export const createManualFindingSchema =
         .max(180),
   });
 
+export const aiPrioritySchema =
+  z.object({
+
+    score:
+      z.number()
+        .min(0)
+        .max(100),
+
+    level:
+      z.string(),
+
+    responsePriority:
+      z.enum([
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+      ]),
+
+    impact:
+      z.object({
+
+        buildings:
+          z.string(),
+
+        roads:
+          z.string(),
+
+        water:
+          z.string(),
+      }),
+
+    recommendedAction:
+      z.string(),
+
+    reasons:
+      z.array(
+        z.string()
+      ),
+
+    components:
+      z.object({
+
+        buildingImpact:
+          z.number(),
+
+        roadImpact:
+          z.number(),
+
+        waterExtent:
+          z.number(),
+      }),
+  });
+
+
+export const segmentationFindingSchema =
+  z.object({
+
+    type:
+      z.string(),
+
+    severity:
+      z.string(),
+
+    pixelCount:
+      z.number()
+        .int()
+        .nonnegative(),
+
+    areaPercentage:
+      z.number()
+        .min(0)
+        .max(100),
+
+    bbox:
+      z.array(
+        z.number()
+      )
+        .length(4)
+        .nullable()
+        .optional(),
+
+    prediction:
+      z.record(
+        z.string(),
+        z.unknown()
+      ),
+  });
+
 
 export const aiAnalysisResponseSchema =
   z.object({
@@ -195,6 +287,21 @@ export const aiAnalysisResponseSchema =
     findings:
       z.array(
         aiFindingSchema
+      )
+        .default([]),
+
+    resultImage:
+      z.string()
+        .min(1)
+        .optional(),
+
+    priority:
+      aiPrioritySchema
+        .optional(),
+
+    segmentationSummary:
+      z.array(
+        segmentationFindingSchema
       )
         .default([]),
   });
@@ -265,34 +372,34 @@ const findingCorrectionSchema =
         .max(180)
         .optional(),
   })
-  .refine(
-    (value) =>
-      Object.keys(value).length > 0,
-    {
-      message:
-        "At least one corrected field is required",
-    }
-  )
-  .refine(
-    (value) => {
-      const hasLatitude =
-        value.latitude !==
-        undefined;
+    .refine(
+      (value) =>
+        Object.keys(value).length > 0,
+      {
+        message:
+          "At least one corrected field is required",
+      }
+    )
+    .refine(
+      (value) => {
+        const hasLatitude =
+          value.latitude !==
+          undefined;
 
-      const hasLongitude =
-        value.longitude !==
-        undefined;
+        const hasLongitude =
+          value.longitude !==
+          undefined;
 
-      return (
-        hasLatitude ===
-        hasLongitude
-      );
-    },
-    {
-      message:
-        "Latitude and longitude must be corrected together",
-    }
-  );
+        return (
+          hasLatitude ===
+          hasLongitude
+        );
+      },
+      {
+        message:
+          "Latitude and longitude must be corrected together",
+      }
+    );
 
 
 const confirmFindingSchema =
