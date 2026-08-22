@@ -2,18 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Sun,
   Moon,
-  Sparkles,
   Activity,
-  Volume2,
-  VolumeX
 } from 'lucide-react';
 import SearchBar from './SearchBar';
 import UserMenu from './UserMenu';
 import { useSettings } from '../context/SettingsContext';
 import { getTranslation } from '../services/translations';
+import BrandedText from './BrandedText';
 
 export default function Header({ eventName, onNavigate, onSignOut }) {
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const { isDarkMode, setIsDarkMode, language } = useSettings();
 
@@ -55,28 +52,10 @@ export default function Header({ eventName, onNavigate, onSignOut }) {
 
         <div className="space-y-1 flex-1">
 
-          {/* AI Stream + Live Date & Time */}
-          <div className="flex items-center space-x-2 font-mono text-[11px] flex-wrap">
-
-            <span className="bg-sky-500/10 text-sky-500 font-bold px-2 py-0.5 rounded border border-sky-500/30 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" />
-              {t('header.aiStream')}
-            </span>
-
-            <span className="text-[var(--text-secondary)]">
-              •
-            </span>
-
-            <span className="text-[var(--text-secondary)] font-medium">
-              {formattedDateTime}
-            </span>
-
-          </div>
-
           {/* Event Name */}
           <h2 className="text-xl font-extrabold tracking-tight flex items-center gap-3 flex-wrap text-[var(--text-primary)]">
 
-            <span>{eventName}</span>
+            <span><BrandedText>{eventName}</BrandedText></span>
 
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-500/10 text-red-500 border border-red-500/30">
 
@@ -88,6 +67,13 @@ export default function Header({ eventName, onNavigate, onSignOut }) {
 
           </h2>
 
+          {/* Live Date & Time */}
+          <div className="flex items-center space-x-2 font-mono text-[11px] flex-wrap">
+            <span className="text-[var(--text-secondary)] font-medium">
+              {formattedDateTime}
+            </span>
+          </div>
+
         </div>
       </div>
 
@@ -96,23 +82,6 @@ export default function Header({ eventName, onNavigate, onSignOut }) {
 
       {/* Controls */}
       <div className="flex items-center space-x-3 flex-shrink-0">
-
-        {/* Audio Toggle */}
-        <button
-          onClick={() => setSoundEnabled(!soundEnabled)}
-          className="p-2.5 rounded-xl theme-card hover:text-sky-500 transition-colors cursor-pointer border border-[var(--border-color)]"
-          title={
-            soundEnabled
-              ? 'Emergency Alerts Sound ON'
-              : 'Muted'
-          }
-        >
-          {soundEnabled ? (
-            <Volume2 className="w-4 h-4 text-emerald-500" />
-          ) : (
-            <VolumeX className="w-4 h-4 text-[var(--text-muted)]" />
-          )}
-        </button>
 
         {/* Light / Dark Mode Toggle */}
         <button

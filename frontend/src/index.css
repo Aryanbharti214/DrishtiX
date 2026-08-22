@@ -160,3 +160,38 @@ body,
 .theme-border {
   border-color: var(--border-color) !important;
 }
+
+/* Leaflet evidence popups must remain legible over dense map imagery. */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.38) !important;
+  opacity: 1 !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color);
+}
+
+.leaflet-popup-content,
+.leaflet-popup-content p,
+.leaflet-popup-content span {
+  color: inherit;
+}
+
+.leaflet-popup-close-button {
+  color: var(--text-secondary) !important;
+}
+
+/* Keep Leaflet panes and controls inside the page's isolated map section. */
+.leaflet-container {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  isolation: isolate;
+}

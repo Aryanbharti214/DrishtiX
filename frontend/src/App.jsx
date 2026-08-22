@@ -38,6 +38,8 @@ import Settings
 
 import Login
   from "./pages/Login";
+import Landing
+  from "./pages/Landing";
 
 
 import {
@@ -61,6 +63,8 @@ import {
 
 
 function AppContent() {
+
+  const [showLogin, setShowLogin] = useState(false);
 
   const [
     isAuthenticated,
@@ -421,11 +425,16 @@ function AppContent() {
     !isAuthenticated
   ) {
 
+    if (!showLogin) {
+      return <Landing onAccess={() => setShowLogin(true)} />;
+    }
+
     return (
       <Login
         onLogin={
           handleLogin
         }
+        onBack={() => setShowLogin(false)}
       />
     );
 
@@ -462,7 +471,7 @@ function AppContent() {
       />
 
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
 
         <Header
           eventName={
@@ -485,6 +494,7 @@ function AppContent() {
             lg:p-8
             flex-1
             overflow-y-auto
+            overflow-x-hidden
           "
         >
 

@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { localizeDocument } from "../services/translations";
 
 const SettingsContext = createContext(null);
 
@@ -46,6 +47,14 @@ export function SettingsProvider({
       "National Disaster Response Force",
   });
 
+  const [mapPreferences, setMapPreferences] = useState(() => {
+    try {
+      return { showClusters: true, showRelations: true, ...(JSON.parse(localStorage.getItem("drishtix-map-preferences")) || {}) };
+    } catch {
+      return { showClusters: true, showRelations: true };
+    }
+  });
+
   useEffect(() => {
     localStorage.setItem(
       "drishtix-language",
@@ -60,6 +69,18 @@ export function SettingsProvider({
     );
   }, [isDarkMode]);
 
+  useEffect(() => {
+    localStorage.setItem("drishtix-map-preferences", JSON.stringify(mapPreferences));
+  }, [mapPreferences]);
+
+  useEffect(() => {
+    const apply = () => localizeDocument(language);
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [language]);
+
   const value = useMemo(
     () => ({
       language,
@@ -70,11 +91,14 @@ export function SettingsProvider({
 
       userProfile,
       setUserProfile,
+      mapPreferences,
+      setMapPreferences,
     }),
     [
       language,
       isDarkMode,
       userProfile,
+      mapPreferences,
     ]
   );
 

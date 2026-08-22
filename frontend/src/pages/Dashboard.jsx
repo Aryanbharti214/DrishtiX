@@ -10,8 +10,6 @@ import {
   AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
-  GitMerge,
-  Image,
   MapPinned,
   RefreshCw,
   ShieldAlert,
@@ -33,6 +31,8 @@ import {
 
 import StatCard
   from "../components/StatCard";
+import BrandedText
+  from "../components/BrandedText";
 
 
 function pretty(
@@ -422,9 +422,7 @@ export default function Dashboard({
 
 
               <h2 className="text-lg font-black text-[var(--text-primary)] mt-1">
-                {
-                  currentDisaster.name
-                }
+                <BrandedText>{currentDisaster.name}</BrandedText>
               </h2>
 
 
@@ -505,21 +503,7 @@ export default function Dashboard({
 
       {/* PRIMARY METRICS */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-
-        <StatCard
-          label="Imagery Analyzed"
-          value={
-            metrics.analyzedImagery
-          }
-          icon={
-            Image
-          }
-          badgeColor="bg-blue-500/10 text-blue-500"
-          borderColor="border-l-blue-500"
-        />
-
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
           label="Active Findings"
           value={
@@ -530,19 +514,6 @@ export default function Dashboard({
           }
           badgeColor="bg-red-500/10 text-red-500"
           borderColor="border-l-red-500"
-        />
-
-
-        <StatCard
-          label="Corroborated Clusters"
-          value={
-            metrics.corroboratedClusters
-          }
-          icon={
-            GitMerge
-          }
-          badgeColor="bg-emerald-500/10 text-emerald-500"
-          borderColor="border-l-emerald-500"
         />
 
 
@@ -558,46 +529,15 @@ export default function Dashboard({
           borderColor="border-l-amber-500"
         />
 
-      </div>
-
-
-      {/* SECONDARY STATUS */}
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-
-        <MiniMetric
-          label="Disputed Clusters"
-          value={
-            metrics.disputedClusters
-          }
-          warning
-        />
-
-
-        <MiniMetric
-          label="Fusion Pending Review"
-          value={
-            metrics.pendingFusion
-          }
-        />
-
-
-        <MiniMetric
-          label="Fusion Approved"
-          value={
-            metrics.approvedFusion
-          }
-        />
-
-
-        <MiniMetric
+        <StatCard
           label="Critical Priorities"
           value={
             metrics.criticalPriorities
           }
-          warning
+          icon={Target}
+          badgeColor="bg-orange-500/10 text-orange-500"
+          borderColor="border-l-orange-500"
         />
-
       </div>
 
 
@@ -866,40 +806,6 @@ export default function Dashboard({
         </div>
 
       </div>
-
-    </div>
-  );
-}
-
-
-function MiniMetric({
-  label,
-  value,
-  warning = false,
-}) {
-
-  return (
-    <div className="theme-card rounded-xl border border-[var(--border-color)] p-4">
-
-      <p className="text-[9px] uppercase tracking-widest font-bold text-[var(--text-muted)]">
-        {
-          label
-        }
-      </p>
-
-
-      <p
-        className={`text-2xl font-black mt-2 ${
-          warning &&
-          value > 0
-            ? "text-red-500"
-            : "text-[var(--text-primary)]"
-        }`}
-      >
-        {
-          value
-        }
-      </p>
 
     </div>
   );

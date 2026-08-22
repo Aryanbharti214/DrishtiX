@@ -3,6 +3,7 @@ import React, {
 } from "react";
 
 import {
+  ArrowLeft,
   Eye,
   EyeOff,
   KeyRound,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
+import BrandName from "../components/BrandName";
 
 import {
   login,
@@ -19,6 +21,7 @@ import {
 
 export default function Login({
   onLogin,
+  onBack,
 }) {
 
   const [
@@ -185,6 +188,10 @@ export default function Login({
       "
     >
 
+      <button type="button" onClick={onBack} className="absolute left-5 top-5 z-20 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-bold text-slate-300 hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
+
       {/* BACKGROUND */}
 
       <div
@@ -288,7 +295,7 @@ export default function Login({
                 text-white
               "
             >
-              DRISHTIX
+              <BrandName />
             </h1>
 
 

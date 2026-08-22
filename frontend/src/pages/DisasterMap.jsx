@@ -51,6 +51,7 @@ import FusionRecommendationPanel
 import {
   useDisaster,
 } from "../context/DisasterContext";
+import { useSettings } from "../context/SettingsContext";
 
 
 const DEFAULT_CENTER = [
@@ -159,6 +160,15 @@ function MapBoundsController({
 }
 
 
+function RegionViewportController({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) map.flyTo(center, 11, { duration: 0.9 });
+  }, [center, map]);
+  return null;
+}
+
+
 /*
 |--------------------------------------------------------------------------
 | Click anywhere on map to report a finding
@@ -228,6 +238,41 @@ export default function DisasterMap() {
   const {
     currentDisaster,
   } = useDisaster();
+
+  const { mapPreferences, isDarkMode } = useSettings();
+  const [regionCenter, setRegionCenter] = useState(null);
+  const [regionLookupStatus, setRegionLookupStatus] = useState("idle");
+
+  useEffect(() => {
+    const region = currentDisaster?.regionName?.trim();
+    if (!region) {
+      setRegionCenter(null);
+      setRegionLookupStatus("idle");
+      return;
+    }
+    const controller = new AbortController();
+    setRegionLookupStatus("loading");
+    fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(region)}`, {
+      signal: controller.signal,
+      headers: { "Accept-Language": "en" },
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Geocoding failed");
+        return response.json();
+      })
+      .then((results) => {
+        if (!results?.[0]) throw new Error("Region not found");
+        setRegionCenter([Number(results[0].lat), Number(results[0].lon)]);
+        setRegionLookupStatus("ready");
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          setRegionCenter(null);
+          setRegionLookupStatus("failed");
+        }
+      });
+    return () => controller.abort();
+  }, [currentDisaster?.regionName]);
 
 
   /*
@@ -1478,6 +1523,9 @@ const loadFusionRecommendations =
 
           </p>
 
+          {regionLookupStatus === "loading" && <p className="mt-1 text-xs text-sky-500">Locating {currentDisaster?.regionName}…</p>}
+          {regionLookupStatus === "failed" && <p className="mt-1 text-xs text-amber-500">Region could not be located; showing available evidence.</p>}
+
         </div>
 
 
@@ -1787,7 +1835,7 @@ const loadFusionRecommendations =
 
       </div>
 
-      <div className="relative theme-card rounded-2xl overflow-hidden border border-[var(--border-color)] h-[650px]">
+      <div className="relative isolate z-0 w-full max-w-full min-w-0 h-[650px] theme-card rounded-2xl overflow-hidden border border-[var(--border-color)] [contain:layout_paint]">
 
 
         {!currentDisaster && (
@@ -1855,6 +1903,7 @@ const loadFusionRecommendations =
 
 
         <MapContainer
+          className="!relative !z-0 h-full w-full max-w-full"
           center={
             DEFAULT_CENTER
           }
@@ -1870,7 +1919,7 @@ const loadFusionRecommendations =
 
           <TileLayer
             attribution="&copy; OpenStreetMap contributors &copy; CARTO"
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"}
           />
 
 
@@ -1879,6 +1928,8 @@ const loadFusionRecommendations =
               filteredFindings
             }
           />
+
+          <RegionViewportController center={regionCenter} />
 
 
           <MapClickReporter
@@ -1892,7 +1943,7 @@ const loadFusionRecommendations =
 
 
           {
-            selectedCluster &&
+            mapPreferences.showRelations && selectedCluster &&
             selectedCluster.relations.map(
               (relation) => {
 
@@ -1980,7 +2031,7 @@ const loadFusionRecommendations =
 
           {
             showClusterLayer &&
-            visibleEvidenceClusters.map(
+            mapPreferences.showClusters && visibleEvidenceClusters.map(
               (cluster) => {
 
                 const latitude =
