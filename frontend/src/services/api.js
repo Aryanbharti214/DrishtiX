@@ -352,6 +352,21 @@ export async function getDisaster(
   );
 }
 
+export async function deleteDisasters(
+  ids
+) {
+  return apiRequest(
+    "/disasters/bulk",
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ids }),
+    }
+  );
+}
+
 
 
 
@@ -409,6 +424,21 @@ export async function getImageryById(
 
   return apiRequest(
     `/imagery/${imageryId}`
+  );
+}
+
+export async function deleteImagery(
+  ids
+) {
+  return apiRequest(
+    "/imagery/bulk",
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ids }),
+    }
   );
 }
 

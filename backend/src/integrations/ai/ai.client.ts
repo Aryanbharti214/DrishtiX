@@ -124,3 +124,23 @@ export async function fetchAIResultImage(
     response.data
   );
 }
+
+export async function deleteAIResultImage(
+  imageId: string
+) {
+  try {
+    await aiClient.delete(
+      `/api/v1/analyze/${imageId}/result`,
+      { timeout: 10_000 }
+    );
+    return true;
+  } catch (error) {
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.status === 404
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}

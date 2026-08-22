@@ -78,3 +78,27 @@ async def get_analysis_result(
         path=result_path,
         media_type="image/jpeg",
     )
+
+
+@router.delete(
+    "/analyze/{image_id}/result"
+)
+async def delete_analysis_result(
+    image_id: UUID,
+):
+    result_path = (
+        RESULTS_DIR
+        / f"{image_id}_overlay.jpg"
+    )
+
+    if not result_path.exists():
+        return {
+            "deleted": False,
+            "reason": "not_found",
+        }
+
+    result_path.unlink()
+
+    return {
+        "deleted": True,
+    }

@@ -39,5 +39,9 @@ export const createImageryMetadataSchema = z.object({
 export const imageryIdSchema =
   z.string().uuid();
 
+export const bulkDeleteImagerySchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(100),
+});
+
 export type CreateImageryMetadataInput =
   z.infer<typeof createImageryMetadataSchema>;

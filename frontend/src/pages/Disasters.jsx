@@ -9,7 +9,9 @@ import {
   MapPin,
   Plus,
   RefreshCw,
+  Trash2,
   TriangleAlert,
+  X,
 } from "lucide-react";
 
 import {
@@ -37,6 +39,7 @@ export default function Disasters() {
     error,
 
     addDisaster,
+    removeDisasters,
     selectDisaster,
     refreshDisasters,
   } = useDisaster();
@@ -53,6 +56,41 @@ export default function Disasters() {
 
   const [formError, setFormError] =
     useState("");
+
+  const [manageMode, setManageMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  function cancelManage() {
+    setManageMode(false);
+    setSelectedIds(new Set());
+    setConfirmDelete(false);
+  }
+
+  function toggleSelected(id) {
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleDeleteSelected() {
+    try {
+      setDeleting(true);
+      setFormError("");
+      await removeDisasters([...selectedIds]);
+      setSuccessMessage(`${selectedIds.size} disaster event${selectedIds.size === 1 ? "" : "s"} deleted.`);
+      cancelManage();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to delete disaster events");
+      setConfirmDelete(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   function handleChange(event) {
     const {
@@ -438,7 +476,7 @@ export default function Disasters() {
 
         {/* EVENT LIST */}
         <div className="theme-card rounded-xl border border-[var(--border-color)] p-6">
-          <div className="flex justify-between items-center mb-5">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-5">
             <div>
               <h3 className="font-bold text-[var(--text-primary)]">
                 Disaster Events
@@ -456,6 +494,21 @@ export default function Disasters() {
                 }
               </p>
             </div>
+
+            {!manageMode ? (
+              <button type="button" onClick={() => setManageMode(true)} disabled={disasters.length === 0} className="rounded-lg border border-[var(--border-color)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] disabled:opacity-50">
+                Manage
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => setSelectedIds(selectedIds.size === disasters.length ? new Set() : new Set(disasters.map((item) => item.id)))} className="rounded-lg border border-[var(--border-color)] px-3 py-2 text-xs font-bold">
+                  {selectedIds.size === disasters.length ? "Clear All" : "Select All"}
+                </button>
+                <span className="text-xs text-[var(--text-secondary)]">{selectedIds.size} selected</span>
+                <button type="button" onClick={() => setConfirmDelete(true)} disabled={selectedIds.size === 0} className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3.5 w-3.5" />Delete Selected</button>
+                <button type="button" onClick={cancelManage} className="rounded-lg border border-[var(--border-color)] px-3 py-2 text-xs font-bold">Cancel</button>
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -479,22 +532,24 @@ export default function Disasters() {
                     disaster.id;
 
                   return (
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
                       key={
                         disaster.id
                       }
-                      onClick={() =>
-                        selectDisaster(
-                          disaster
-                        )
-                      }
-                      className={`w-full text-left rounded-xl border p-4 transition-all ${
+                      onClick={() => manageMode ? toggleSelected(disaster.id) : selectDisaster(disaster)}
+                      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); manageMode ? toggleSelected(disaster.id) : selectDisaster(disaster); } }}
+                      className={`relative w-full cursor-pointer text-left rounded-xl border p-4 transition-all ${
+                        manageMode && selectedIds.has(disaster.id)
+                          ? "border-red-500 bg-red-500/10"
+                          :
                         selected
                           ? "border-orange-500 bg-orange-500/10"
                           : "border-[var(--border-color)] bg-[var(--bg-main)] hover:bg-[var(--bg-card-hover)]"
                       }`}
                     >
+                      {manageMode && <input type="checkbox" checked={selectedIds.has(disaster.id)} onChange={() => toggleSelected(disaster.id)} onClick={(event) => event.stopPropagation()} aria-label={`Select ${disaster.name}`} className="absolute right-3 top-3 h-4 w-4 accent-red-600" />}
                       <div className="flex justify-between gap-3">
 
                         <div className="min-w-0">
@@ -544,7 +599,7 @@ export default function Disasters() {
                         </div>
 
                         <span
-                          className={`text-[10px] font-bold px-2 py-1 h-fit rounded ${
+                          className={`text-[10px] font-bold px-2 py-1 h-fit rounded ${manageMode ? "mr-7" : ""} ${
                             disaster.status ===
                             "ACTIVE"
                               ? "bg-emerald-500/10 text-emerald-500"
@@ -560,7 +615,7 @@ export default function Disasters() {
                         </span>
 
                       </div>
-                    </button>
+                    </div>
                   );
                 }
               )}
@@ -568,6 +623,17 @@ export default function Disasters() {
           )}
         </div>
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/70 p-4" onMouseDown={(event) => event.target === event.currentTarget && !deleting && setConfirmDelete(false)}>
+          <div className="theme-card w-full max-w-lg rounded-2xl border border-red-500/35 p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-red-500">Destructive action</p><h3 className="mt-2 text-xl font-black">Delete {selectedIds.size} disaster event{selectedIds.size === 1 ? "" : "s"}?</h3></div><button type="button" disabled={deleting} onClick={() => setConfirmDelete(false)} className="rounded-lg border border-[var(--border-color)] p-2"><X className="h-4 w-4" /></button></div>
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">This action cannot be undone. Related imagery, AI runs, findings, evidence relationships, and fusion records will also be removed.</p>
+            <div className="mt-4 max-h-36 space-y-1 overflow-y-auto rounded-lg bg-[var(--bg-main)] p-3 text-xs text-[var(--text-secondary)]">{disasters.filter((item) => selectedIds.has(item.id)).map((item) => <p key={item.id}>{item.name}</p>)}</div>
+            <div className="mt-6 flex justify-end gap-2"><button type="button" disabled={deleting} onClick={() => setConfirmDelete(false)} className="rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-bold">Cancel</button><button type="button" disabled={deleting} onClick={handleDeleteSelected} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50">{deleting ? "Deleting..." : "Delete Selected"}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

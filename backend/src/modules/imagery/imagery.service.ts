@@ -4,9 +4,11 @@ import { AppError } from "../../utils/app-error.js";
 
 import {
   createImagery,
+  bulkDeleteImagery,
   findImageryById,
   findImageryByDisaster,
 } from "./imagery.repository.js";
+import { removeImageryOwnedFiles } from "./imagery-files.service.js";
 
 import {
   findDisasterById,
@@ -100,4 +102,34 @@ export async function getDisasterImageryService(
   return findImageryByDisaster(
     disasterId
   );
+}
+
+export async function bulkDeleteImageryService(
+  ids: string[]
+) {
+  const result = await bulkDeleteImagery(ids);
+
+  if (result.kind === "missing") {
+    throw new AppError(
+      404,
+      "IMAGERY_NOT_FOUND",
+      "One or more selected imagery records no longer exist"
+    );
+  }
+
+  if (result.kind === "active") {
+    throw new AppError(
+      409,
+      "IMAGERY_PROCESSING",
+      "Queued or processing imagery cannot be deleted"
+    );
+  }
+
+  const cleanupWarnings = await removeImageryOwnedFiles(result.assets);
+
+  return {
+    deletedCount: result.assets.length,
+    deletedIds: result.assets.map((item) => item.id),
+    cleanupWarnings,
+  };
 }

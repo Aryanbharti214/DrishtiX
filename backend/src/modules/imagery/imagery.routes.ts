@@ -15,6 +15,7 @@ import {
 
 import {
   analyzeImageryController,
+  bulkDeleteImageryController,
   getDisasterImageryController,
   getImageryAnalysisController,
   getImageryByIdController,
@@ -24,6 +25,15 @@ import {
 
 export const imageryRouter =
   Router();
+
+imageryRouter.delete(
+  "/bulk",
+  requireRole(
+    "RESPONDER",
+    "COMMANDER"
+  ),
+  bulkDeleteImageryController
+);
 
 
 

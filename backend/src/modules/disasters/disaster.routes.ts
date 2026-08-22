@@ -4,12 +4,19 @@ import {
 } from "../auth/auth.middleware.js";
 import {
   createDisasterController,
+  bulkDeleteDisastersController,
   getAllDisastersController,
   getDisasterByIdController,
   updateDisasterController,
 } from "./disaster.controller.js";
 
 export const disasterRouter = Router();
+
+disasterRouter.delete(
+  "/bulk",
+  requireRole("COMMANDER"),
+  bulkDeleteDisastersController
+);
 
 disasterRouter.post(
   "/",

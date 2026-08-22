@@ -198,3 +198,93 @@ export async function updateImageryStatus(
     ? mapImagery(imagery)
     : null;
 }
+
+interface ImageryDeleteRow {
+  id: string;
+  stored_filename: string;
+  processing_status: string;
+}
+
+export async function bulkDeleteImagery(
+  ids: string[]
+) {
+  const uniqueIds = [...new Set(ids)];
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const imagery = await client.query<ImageryDeleteRow>(
+      `
+        SELECT id, stored_filename, processing_status
+        FROM imagery
+        WHERE id = ANY($1::uuid[])
+        FOR UPDATE
+      `,
+      [uniqueIds]
+    );
+
+    if (imagery.rowCount !== uniqueIds.length) {
+      await client.query("ROLLBACK");
+      return { kind: "missing" as const };
+    }
+
+    const active = imagery.rows.filter((item) =>
+      ["QUEUED", "PROCESSING"].includes(item.processing_status)
+    );
+
+    if (active.length > 0) {
+      await client.query("ROLLBACK");
+      return {
+        kind: "active" as const,
+        imageryIds: active.map((item) => item.id),
+      };
+    }
+
+    await client.query(
+      `
+        DELETE FROM fusion_recommendations recommendation
+        WHERE EXISTS (
+          SELECT 1
+          FROM findings finding
+          WHERE finding.imagery_id = ANY($1::uuid[])
+            AND (
+              recommendation.anchor_finding_id = finding.id
+              OR recommendation.resulting_finding_id = finding.id
+              OR EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(
+                  COALESCE(
+                    recommendation.evidence_snapshot->'cluster'->'members',
+                    '[]'::jsonb
+                  )
+                ) member
+                WHERE member->>'id' = finding.id::text
+              )
+            )
+        )
+      `,
+      [uniqueIds]
+    );
+
+    await client.query(
+      `DELETE FROM imagery WHERE id = ANY($1::uuid[])`,
+      [uniqueIds]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      kind: "deleted" as const,
+      assets: imagery.rows.map((item) => ({
+        id: item.id,
+        storedFilename: item.stored_filename,
+      })),
+    };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
