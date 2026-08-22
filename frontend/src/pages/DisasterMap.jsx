@@ -11,6 +11,7 @@ import {
   Polyline,
   Popup,
   TileLayer,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -22,6 +23,8 @@ import {
   Crosshair,
   Filter,
   LocateFixed,
+  Hospital,
+  Layers3,
   MapPin,
   Plus,
   Radio,
@@ -242,6 +245,9 @@ export default function DisasterMap() {
   const { mapPreferences, isDarkMode } = useSettings();
   const [regionCenter, setRegionCenter] = useState(null);
   const [regionLookupStatus, setRegionLookupStatus] = useState("idle");
+  const [mapLayers, setMapLayers] = useState({ findings: true, clusters: true, hospitals: true });
+  const [hospitals, setHospitals] = useState([]);
+  const [hospitalStatus, setHospitalStatus] = useState("idle");
 
   useEffect(() => {
     const region = currentDisaster?.regionName?.trim();
@@ -251,6 +257,7 @@ export default function DisasterMap() {
       return;
     }
     const controller = new AbortController();
+    setRegionCenter(null);
     setRegionLookupStatus("loading");
     fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(region)}`, {
       signal: controller.signal,
@@ -273,6 +280,27 @@ export default function DisasterMap() {
       });
     return () => controller.abort();
   }, [currentDisaster?.regionName]);
+
+  useEffect(() => {
+    if (!regionCenter) { setHospitals([]); setHospitalStatus("idle"); return; }
+    const controller = new AbortController();
+    const [latitude, longitude] = regionCenter;
+    const query = `[out:json][timeout:25];(node["amenity"~"^(hospital|clinic)$"](around:25000,${latitude},${longitude});way["amenity"~"^(hospital|clinic)$"](around:25000,${latitude},${longitude});relation["amenity"~"^(hospital|clinic)$"](around:25000,${latitude},${longitude});node["healthcare"~"^(hospital|clinic|doctor)$"](around:25000,${latitude},${longitude});way["healthcare"~"^(hospital|clinic|doctor)$"](around:25000,${latitude},${longitude}););out center tags;`;
+    setHospitalStatus("loading");
+    fetch("https://overpass-api.de/api/interpreter", { method: "POST", signal: controller.signal, headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: `data=${encodeURIComponent(query)}` })
+      .then((response) => { if (!response.ok) throw new Error("Healthcare data unavailable"); return response.json(); })
+      .then((data) => {
+        const facilities = (data?.elements ?? []).map((element) => {
+          const lat = element.lat ?? element.center?.lat; const lng = element.lon ?? element.center?.lon; const tags = element.tags ?? {};
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+          const address = tags["addr:full"] || [tags["addr:housenumber"], tags["addr:street"], tags["addr:city"]].filter(Boolean).join(", ") || null;
+          return { id: `${element.type}-${element.id}`, latitude: lat, longitude: lng, name: tags.name || tags["name:en"] || "Healthcare facility", facilityType: tags.healthcare || tags.amenity || null, address, operator: tags.operator || null, emergency: tags.emergency || null };
+        }).filter(Boolean);
+        setHospitals(facilities); setHospitalStatus("ready");
+      })
+      .catch((error) => { if (error.name !== "AbortError") { setHospitals([]); setHospitalStatus("failed"); } });
+    return () => controller.abort();
+  }, [regionCenter]);
 
 
   /*
@@ -1837,6 +1865,12 @@ const loadFusionRecommendations =
 
       <div className="relative isolate z-0 w-full max-w-full min-w-0 h-[650px] theme-card rounded-2xl overflow-hidden border border-[var(--border-color)] [contain:layout_paint]">
 
+        <div className="map-layers-control absolute right-4 bottom-9 z-[1100] w-48 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 text-[var(--text-primary)] shadow-xl">
+          <div className="mb-2 flex items-center gap-2 text-xs font-black"><Layers3 className="h-4 w-4 text-orange-500" />Map Layers</div>
+          {[['findings', 'Findings'], ['clusters', 'Evidence Clusters'], ['hospitals', 'Hospitals']].map(([key, label]) => <label key={key} className="flex cursor-pointer items-center justify-between gap-3 py-1.5 text-xs"><span>{label}</span><input type="checkbox" checked={mapLayers[key]} onChange={() => setMapLayers((current) => ({ ...current, [key]: !current[key] }))} className="h-4 w-4 accent-orange-600" /></label>)}
+          <p className="mt-2 border-t border-[var(--border-color)] pt-2 text-[9px] text-[var(--text-muted)]">{hospitalStatus === "loading" ? "Loading healthcare data…" : hospitalStatus === "failed" ? "Hospital data unavailable" : `${hospitals.length} mapped facilities`}</p>
+        </div>
+
 
         {!currentDisaster && (
 
@@ -1872,9 +1906,9 @@ const loadFusionRecommendations =
         )}
       
 
-        <div className="absolute z-[900] left-4 bottom-4 bg-slate-950/90 border border-slate-700 rounded-xl p-4 text-white shadow-xl">
+        <div className="map-severity-legend absolute z-[900] left-4 bottom-4 rounded-xl p-4 shadow-xl">
 
-          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-3">
+          <p className="map-severity-title text-[10px] uppercase tracking-widest font-bold mb-3">
             Severity
           </p>
 
@@ -1943,7 +1977,7 @@ const loadFusionRecommendations =
 
 
           {
-            mapPreferences.showRelations && selectedCluster &&
+            mapLayers.clusters && mapPreferences.showRelations && selectedCluster &&
             selectedCluster.relations.map(
               (relation) => {
 
@@ -2031,7 +2065,7 @@ const loadFusionRecommendations =
 
           {
             showClusterLayer &&
-            mapPreferences.showClusters && visibleEvidenceClusters.map(
+            mapLayers.clusters && mapPreferences.showClusters && visibleEvidenceClusters.map(
               (cluster) => {
 
                 const latitude =
@@ -2117,7 +2151,7 @@ const loadFusionRecommendations =
                       }
                     >
 
-                      <div className="space-y-3 text-slate-900">
+                      <div className="evidence-cluster-popup space-y-3 text-slate-900">
 
                         <div className="flex items-center justify-between gap-3">
 
@@ -2222,7 +2256,7 @@ const loadFusionRecommendations =
 
                           }
                         }
-                        className="mt-3 w-full px-3 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold"
+                        className="evidence-cluster-popup-action mt-3 w-full px-3 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold"
                       >
                         Inspect Evidence Cluster
                       </button>
@@ -2236,7 +2270,7 @@ const loadFusionRecommendations =
           }
 
 
-          {filteredFindings.map(
+          {mapLayers.findings && filteredFindings.map(
             (finding) => {
 
               const latitude =
@@ -2478,6 +2512,21 @@ const loadFusionRecommendations =
             }
           )}
 
+          {mapLayers.hospitals && hospitals.map((hospital) => (
+            <CircleMarker key={hospital.id} center={[hospital.latitude, hospital.longitude]} radius={10} pathOptions={{ color: "#ffffff", fillColor: "#e11d48", fillOpacity: 1, weight: 2 }}>
+              <Tooltip permanent direction="center" className="hospital-marker-symbol">+</Tooltip>
+              <Popup minWidth={250}>
+                <div className="space-y-3 text-slate-900">
+                  <div className="flex items-start gap-2"><span className="rounded-lg bg-rose-600 p-2 text-white"><Hospital className="h-4 w-4" /></span><div><h4 className="font-bold">{hospital.name}</h4>{hospital.facilityType && <p className="mt-1 text-xs capitalize text-slate-600">{prettyType(hospital.facilityType)}</p>}</div></div>
+                  {hospital.address && <p className="text-xs text-slate-600"><strong>Address:</strong> {hospital.address}</p>}
+                  {hospital.operator && <p className="text-xs text-slate-600"><strong>Operator:</strong> {hospital.operator}</p>}
+                  {hospital.emergency && <p className="text-xs text-slate-600"><strong>Emergency:</strong> {hospital.emergency}</p>}
+                  <p className="text-[10px] text-slate-500">Mapped OpenStreetMap healthcare data; coverage may be incomplete.</p>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+
         </MapContainer>
 
 
@@ -2485,7 +2534,7 @@ const loadFusionRecommendations =
 
         {loading && (
 
-          <div className="absolute top-4 right-4 z-[1000] rounded-lg bg-slate-950/90 border border-slate-700 px-3 py-2 text-white text-xs flex items-center gap-2">
+          <div className="absolute top-44 right-4 z-[1000] rounded-lg bg-slate-950/90 border border-slate-700 px-3 py-2 text-white text-xs flex items-center gap-2">
 
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
 
@@ -2498,7 +2547,7 @@ const loadFusionRecommendations =
 
         {clustersLoading && (
 
-          <div className="absolute top-14 right-4 z-[1000] rounded-lg bg-slate-950/90 border border-slate-700 px-3 py-2 text-white text-xs flex items-center gap-2">
+          <div className="absolute top-56 right-4 z-[1000] rounded-lg bg-slate-950/90 border border-slate-700 px-3 py-2 text-white text-xs flex items-center gap-2">
 
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
 

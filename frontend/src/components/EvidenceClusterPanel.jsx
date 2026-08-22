@@ -168,14 +168,14 @@ export default function EvidenceClusterPanel({
         rounded-xl
         border
         border-[var(--border-color)]
-        bg-[var(--bg-primary)]
+        bg-[var(--bg-main)]
         shadow-2xl
       "
     >
 
       {/* HEADER */}
 
-      <div className="sticky top-0 z-10 border-b border-[var(--border-color)] bg-[var(--bg-primary)] p-4">
+      <div className="sticky top-0 z-10 border-b border-[var(--border-color)] bg-[var(--bg-main)] p-4">
 
         <div className="flex items-start justify-between gap-4">
 

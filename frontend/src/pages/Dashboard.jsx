@@ -470,7 +470,7 @@ export default function Dashboard({
               onClick={
                 () =>
                   setActiveTab?.(
-                    "priorities"
+                    "findings"
                   )
               }
               className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2"
@@ -677,7 +677,7 @@ export default function Dashboard({
               onClick={
                 () =>
                   setActiveTab?.(
-                    "priorities"
+                    "findings"
                   )
               }
               className="text-xs text-blue-500 hover:underline"

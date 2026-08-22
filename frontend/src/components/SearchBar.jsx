@@ -16,11 +16,8 @@ export default function SearchBar({ onNavigate }) {
   const searchableItems = [
     { id: 1, title: t('nav.dashboard'), page: 'dashboard', category: 'Navigation', icon: 'gauge' },
     { id: 2, title: t('nav.map'), page: 'map', category: 'Navigation', icon: 'map' },
-    { id: 3, title: t('nav.priorities'), page: 'priorities', category: 'Navigation', icon: 'alert' },
-    { id: 4, title: t('nav.verify'), page: 'verify', category: 'Navigation', icon: 'check' },
-    { id: 5, title: t('nav.findings'), page: 'findings', category: 'Reports', icon: 'report' },
-    { id: 6, title: t('nav.evidence'), page: 'evidence', category: 'Data', icon: 'database' },
-    { id: 7, title: t('nav.imagery'), page: 'imagery', category: 'Media', icon: 'image' },
+    { id: 3, title: t('nav.findings'), page: 'findings', category: 'Navigation', icon: 'alert' },
+    { id: 4, title: t('nav.imagery'), page: 'imagery', category: 'Media', icon: 'image' },
     { id: 8, title: 'Damaged Structures', page: 'dashboard', category: 'Statistics', highlight: 'damagedBuildings' },
     { id: 9, title: 'Blocked Supply Routes', page: 'dashboard', category: 'Statistics', highlight: 'blockedRoutes' },
     { id: 10, title: 'Pending Verification', page: 'dashboard', category: 'Statistics', highlight: 'pendingVerification' },

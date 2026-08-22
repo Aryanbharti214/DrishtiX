@@ -18,17 +18,8 @@ import Disasters
 import DisasterMap
   from "./pages/DisasterMap";
 
-import Priorities
-  from "./pages/Priorities";
-
-import Verification
-  from "./pages/Verification";
-
 import Findings
   from "./pages/Findings";
-
-import Evidence
-  from "./pages/Evidence";
 
 import Imagery
   from "./pages/Imagery";
@@ -531,40 +522,9 @@ function AppContent() {
 
           {
             activeTab ===
-              "priorities" &&
-            (
-              <Priorities
-                setActiveTab={
-                  setActiveTab
-                }
-              />
-            )
-          }
-
-
-          {
-            activeTab ===
-              "verify" &&
-            (
-              <Verification />
-            )
-          }
-
-
-          {
-            activeTab ===
               "findings" &&
             (
-              <Findings />
-            )
-          }
-
-
-          {
-            activeTab ===
-              "evidence" &&
-            (
-              <Evidence />
+              <Findings setActiveTab={setActiveTab} />
             )
           }
 

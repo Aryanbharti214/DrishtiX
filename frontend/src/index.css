@@ -186,6 +186,86 @@ body,
   color: var(--text-secondary) !important;
 }
 
+html.dark .leaflet-popup-content-wrapper,
+html.dark .leaflet-popup-tip {
+  background: var(--bg-main) !important;
+}
+
+html.dark .evidence-cluster-popup .text-slate-900,
+html.dark .evidence-cluster-popup .text-slate-600,
+html.dark .evidence-cluster-popup .text-slate-500 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .evidence-cluster-popup .bg-slate-100 {
+  background: var(--bg-surface-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+.evidence-cluster-popup-action {
+  background-color: #ea580c !important;
+  color: #fff !important;
+  opacity: 1 !important;
+}
+
+.evidence-cluster-popup-action:hover {
+  background-color: #c2410c !important;
+}
+
+.map-severity-legend {
+  max-width: calc(50% - 1.5rem);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.map-severity-title {
+  color: var(--text-secondary);
+}
+
+.map-severity-legend span {
+  color: var(--text-primary);
+}
+
+.map-layers-control {
+  max-width: calc(50% - 1.5rem);
+}
+
+@media (max-width: 520px) {
+  .map-severity-legend {
+    left: 0.5rem;
+    bottom: 0.5rem;
+    max-width: calc(43% - 0.75rem);
+    padding: 0.625rem;
+  }
+
+  .map-layers-control {
+    right: 0.5rem;
+    bottom: 2rem;
+    width: 10rem;
+    max-width: calc(57% - 0.75rem);
+    padding: 0.625rem;
+  }
+}
+
+.hospital-marker-symbol {
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+.hospital-marker-symbol::before {
+  display: none !important;
+}
+
 /* Keep Leaflet panes and controls inside the page's isolated map section. */
 .leaflet-container {
   position: relative !important;
