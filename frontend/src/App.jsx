@@ -24,9 +24,6 @@ import Findings
 import Imagery
   from "./pages/Imagery";
 
-import Settings
-  from "./pages/Settings";
-
 import Login
   from "./pages/Login";
 import Landing
@@ -537,18 +534,6 @@ function AppContent() {
             )
           }
 
-
-          {
-            activeTab ===
-              "settings" &&
-            (
-              <Settings
-                onSignOut={
-                  handleSignOut
-                }
-              />
-            )
-          }
 
         </main>
 

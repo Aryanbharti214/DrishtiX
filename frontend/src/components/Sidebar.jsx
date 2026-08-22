@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Activity, AlertTriangle, Image as ImageIcon, LayoutDashboard, Map as MapIcon, PanelLeftClose, PanelLeftOpen, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
+import { Activity, AlertTriangle, Image as ImageIcon, LayoutDashboard, Map as MapIcon, PanelLeftClose, PanelLeftOpen, ShieldCheck } from "lucide-react";
 import { useSettings } from "../context/SettingsContext";
 import { getTranslation } from "../services/translations";
 import BrandName from "./BrandName";
@@ -10,7 +10,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   const t = (key) => getTranslation(language, key);
   const items = [
     ["dashboard", "nav.dashboard", LayoutDashboard], ["disasters", "nav.disasters", Activity], ["map", "nav.map", MapIcon],
-    ["imagery", "nav.imagery", ImageIcon], ["findings", "nav.findings", AlertTriangle], ["settings", "nav.settings", SettingsIcon],
+    ["imagery", "nav.imagery", ImageIcon], ["findings", "nav.findings", AlertTriangle],
   ];
   return <aside className={`${collapsed ? "w-[4.75rem]" : "w-72"} sticky top-0 z-40 flex h-screen shrink-0 select-none flex-col justify-between border-r border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] shadow-lg transition-[width] duration-200`}>
     <div>

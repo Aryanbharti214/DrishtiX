@@ -32,9 +32,6 @@ export default function Landing({ onAccess }) {
             <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"} className="landing-theme-toggle rounded-lg border border-white/20 bg-white/10 p-2 backdrop-blur hover:bg-white/15">
               {isDarkMode ? <Sun className="h-4 w-4 text-amber-300" /> : <Moon className="h-4 w-4 text-blue-700" />}
             </button>
-            <button type="button" onClick={onAccess} className="landing-access-button rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold backdrop-blur hover:bg-white/15">
-              {t("landing.authorizedLogin")}
-            </button>
           </div>
         </nav>
 

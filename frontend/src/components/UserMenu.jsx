@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Settings, LogOut, ChevronDown, Globe } from 'lucide-react';
+import { User, LogOut, ChevronDown, Globe } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { getTranslation, languages } from '../services/translations';
 
-export default function UserMenu({ onNavigate, onSignOut }) {
+export default function UserMenu({ onSignOut }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
   const { language, setLanguage, userProfile } = useSettings();
@@ -21,11 +21,6 @@ export default function UserMenu({ onNavigate, onSignOut }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleSettings = () => {
-    onNavigate('settings');
-    setIsOpen(false);
-  };
 
   const handleSignOut = () => {
     setIsOpen(false);
@@ -92,15 +87,6 @@ export default function UserMenu({ onNavigate, onSignOut }) {
               ))}
             </div>
           </div>
-
-          {/* Menu Items */}
-          <button
-            onClick={handleSettings}
-            className="w-full flex items-center gap-3 px-4 py-2 text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors text-sm border-b border-[var(--border-color)]"
-          >
-            <Settings className="w-4 h-4 text-orange-600" />
-            <span>{t('settings.title')}</span>
-          </button>
 
           <button
             onClick={handleSignOut}

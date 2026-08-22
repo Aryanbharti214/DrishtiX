@@ -104,7 +104,7 @@ export default function Header({ eventName, onNavigate, onSignOut }) {
         </button>
 
         {/* User Menu */}
-        <UserMenu onNavigate={onNavigate} onSignOut={onSignOut} />
+        <UserMenu onSignOut={onSignOut} />
 
       </div>
     </header>
