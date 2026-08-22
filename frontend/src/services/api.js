@@ -6,21 +6,14 @@ const AUTH_USER_KEY =
   "drishtix_auth_user";
 
 
-const CURRENT_ORIGIN =
-  typeof window !== "undefined"
-    ? window.location.origin
-    : "";
-
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  `${CURRENT_ORIGIN}/api/v1`;
+  "http://localhost:4000/api/v1";
 
 
 const BACKEND_ORIGIN =
   import.meta.env.VITE_BACKEND_ORIGIN ||
-  CURRENT_ORIGIN;
-
+  "http://localhost:4000";
 
 
 export function getAuthToken() {
