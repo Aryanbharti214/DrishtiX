@@ -285,10 +285,43 @@ export default function DisasterMap() {
     if (!regionCenter) { setHospitals([]); setHospitalStatus("idle"); return; }
     const controller = new AbortController();
     const [latitude, longitude] = regionCenter;
-    const query = `[out:json][timeout:25];(node["amenity"~"^(hospital|clinic)$"](around:25000,${latitude},${longitude});way["amenity"~"^(hospital|clinic)$"](around:25000,${latitude},${longitude});relation["amenity"~"^(hospital|clinic)$"](around:25000,${latitude},${longitude});node["healthcare"~"^(hospital|clinic|doctor)$"](around:25000,${latitude},${longitude});way["healthcare"~"^(hospital|clinic|doctor)$"](around:25000,${latitude},${longitude}););out center tags;`;
+    const query = `[out:json][timeout:20];(nwr["amenity"="hospital"](around:20000,${latitude},${longitude});nwr["amenity"="clinic"](around:20000,${latitude},${longitude});nwr["healthcare"="hospital"](around:20000,${latitude},${longitude});nwr["healthcare"="clinic"](around:20000,${latitude},${longitude}););out center tags;`;
+    const endpoints = [
+      "https://overpass-api.de/api/interpreter",
+      "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+      "https://overpass.private.coffee/api/interpreter",
+    ];
     setHospitalStatus("loading");
-    fetch("https://overpass-api.de/api/interpreter", { method: "POST", signal: controller.signal, headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: `data=${encodeURIComponent(query)}` })
-      .then((response) => { if (!response.ok) throw new Error("Healthcare data unavailable"); return response.json(); })
+    const loadHospitals = async () => {
+      const failures = [];
+      for (const endpoint of endpoints) {
+        if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
+        const requestController = new AbortController();
+        const abortRequest = () => requestController.abort();
+        controller.signal.addEventListener("abort", abortRequest, { once: true });
+        const timeout = window.setTimeout(abortRequest, 30000);
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            signal: requestController.signal,
+            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+            body: new URLSearchParams({ data: query }),
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          if (!Array.isArray(data?.elements)) throw new Error("Invalid Overpass response");
+          return data;
+        } catch (error) {
+          if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
+          failures.push(`${endpoint}: ${error.message}`);
+        } finally {
+          window.clearTimeout(timeout);
+          controller.signal.removeEventListener("abort", abortRequest);
+        }
+      }
+      throw new Error(failures.join("; "));
+    };
+    loadHospitals()
       .then((data) => {
         const facilities = (data?.elements ?? []).map((element) => {
           const lat = element.lat ?? element.center?.lat; const lng = element.lon ?? element.center?.lon; const tags = element.tags ?? {};
@@ -298,7 +331,7 @@ export default function DisasterMap() {
         }).filter(Boolean);
         setHospitals(facilities); setHospitalStatus("ready");
       })
-      .catch((error) => { if (error.name !== "AbortError") { setHospitals([]); setHospitalStatus("failed"); } });
+      .catch((error) => { if (error.name !== "AbortError") { console.warn("Hospital layer request failed", error); setHospitals([]); setHospitalStatus("failed"); } });
     return () => controller.abort();
   }, [regionCenter]);
 
@@ -2155,7 +2188,7 @@ const loadFusionRecommendations =
 
                         <div className="flex items-center justify-between gap-3">
 
-                          <p className="font-bold text-sm">
+                          <p className="evidence-cluster-popup-title font-bold text-sm">
                             Evidence Cluster
                           </p>
 
@@ -2516,7 +2549,7 @@ const loadFusionRecommendations =
             <CircleMarker key={hospital.id} center={[hospital.latitude, hospital.longitude]} radius={10} pathOptions={{ color: "#ffffff", fillColor: "#e11d48", fillOpacity: 1, weight: 2 }}>
               <Tooltip permanent direction="center" className="hospital-marker-symbol">+</Tooltip>
               <Popup minWidth={250}>
-                <div className="space-y-3 text-slate-900">
+                <div className="hospital-popup space-y-3 text-slate-900">
                   <div className="flex items-start gap-2"><span className="rounded-lg bg-rose-600 p-2 text-white"><Hospital className="h-4 w-4" /></span><div><h4 className="font-bold">{hospital.name}</h4>{hospital.facilityType && <p className="mt-1 text-xs capitalize text-slate-600">{prettyType(hospital.facilityType)}</p>}</div></div>
                   {hospital.address && <p className="text-xs text-slate-600"><strong>Address:</strong> {hospital.address}</p>}
                   {hospital.operator && <p className="text-xs text-slate-600"><strong>Operator:</strong> {hospital.operator}</p>}

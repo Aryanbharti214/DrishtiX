@@ -197,6 +197,179 @@ html.dark .evidence-cluster-popup .text-slate-500 {
   color: var(--text-primary) !important;
 }
 
+html.dark .evidence-cluster-popup-title {
+  color: #f8fafc !important;
+}
+
+html.dark .hospital-popup,
+html.dark .hospital-popup .text-slate-900,
+html.dark .hospital-popup .text-slate-600,
+html.dark .hospital-popup .text-slate-500 {
+  color: var(--text-primary) !important;
+}
+
+.human-decision-confirm {
+  border-color: rgba(34, 197, 94, 0.55);
+  background: rgba(34, 197, 94, 0.08);
+  color: #16a34a;
+}
+
+.human-decision-correct {
+  border-color: rgba(245, 158, 11, 0.6);
+  background: rgba(245, 158, 11, 0.08);
+  color: #d97706;
+}
+
+.human-decision-reject {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+}
+
+html.dark .human-decision-confirm {
+  color: #4ade80;
+}
+
+html.dark .human-decision-correct {
+  color: #fbbf24;
+}
+
+html.dark .human-decision-reject {
+  color: #f87171;
+}
+
+.human-decision-confirm.is-active {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.human-decision-correct.is-active {
+  background: #d97706;
+  border-color: #d97706;
+  color: #fff;
+}
+
+.human-decision-reject.is-active {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+html.light .landing-page {
+  background: linear-gradient(145deg, #eaf2fb 0%, #f8fafc 48%, #fff7ed 100%) !important;
+  color: #0f172a !important;
+}
+
+html.light .landing-hero-overlay-primary {
+  background: linear-gradient(to right, rgba(239, 246, 255, 0.97), rgba(239, 246, 255, 0.82), rgba(30, 58, 138, 0.2)) !important;
+}
+
+html.light .landing-hero-overlay-secondary {
+  background: linear-gradient(to top, #eaf2fb, transparent 58%, rgba(255, 247, 237, 0.42)) !important;
+}
+
+html.light .landing-access-button,
+html.light .landing-theme-toggle {
+  border-color: rgba(30, 58, 138, 0.24) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 8px 24px rgba(30, 58, 138, 0.1);
+}
+
+html.light .landing-page .text-slate-300,
+html.light .landing-page .text-slate-400 {
+  color: #334155 !important;
+}
+
+html.light .landing-page .text-slate-500,
+html.light .landing-page .text-slate-600 {
+  color: #64748b !important;
+}
+
+html.light .landing-workflow-card {
+  border-color: rgba(30, 58, 138, 0.16) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: 0 14px 34px rgba(30, 58, 138, 0.09);
+}
+
+html.light .landing-about,
+html.light .landing-footer {
+  border-color: rgba(30, 58, 138, 0.16) !important;
+}
+
+html.light .login-page {
+  background: linear-gradient(145deg, #dbeafe 0%, #f8fafc 52%, #ffedd5 100%) !important;
+  color: #0f172a;
+}
+
+html.light .login-card {
+  border-color: rgba(30, 58, 138, 0.2) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: 0 30px 80px rgba(30, 58, 138, 0.18) !important;
+}
+
+html.light .login-theme-toggle,
+html.light .login-page > button:first-of-type {
+  border-color: rgba(30, 58, 138, 0.2) !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  color: #334155 !important;
+}
+
+html.light .login-card .text-white,
+html.light .login-card .text-slate-100,
+html.light .login-card .text-slate-200 {
+  color: #0f172a !important;
+}
+
+html.light .login-card .text-slate-300,
+html.light .login-card .text-slate-400,
+html.light .login-card .text-slate-500,
+html.light .login-card .text-slate-600 {
+  color: #64748b !important;
+}
+
+html.light .login-card input,
+html.light .login-card .bg-slate-900\/60 {
+  border-color: #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html.light .login-card input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.login-card input:-webkit-autofill,
+.login-card input:-webkit-autofill:hover,
+.login-card input:-webkit-autofill:focus,
+.login-card input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f1f5f9 !important;
+  caret-color: #f1f5f9;
+  -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+  box-shadow: 0 0 0 1000px #0f172a inset !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+html.light .login-card input:-webkit-autofill,
+html.light .login-card input:-webkit-autofill:hover,
+html.light .login-card input:-webkit-autofill:focus,
+html.light .login-card input:-webkit-autofill:active {
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a;
+  -webkit-box-shadow: 0 0 0 1000px #f8fafc inset !important;
+  box-shadow: 0 0 0 1000px #f8fafc inset !important;
+}
+
+.login-card input[type="password"]::-ms-reveal,
+.login-card input[type="password"]::-ms-clear {
+  display: none;
+}
+
+html.light .login-card button[type="submit"] {
+  color: #fff !important;
+}
+
 html.dark .evidence-cluster-popup .bg-slate-100 {
   background: var(--bg-surface-elevated) !important;
   color: var(--text-primary) !important;
