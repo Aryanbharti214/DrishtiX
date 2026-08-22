@@ -22,9 +22,11 @@ import {
   analyzeImagery,
   getAssetUrl,
   getDisasterImagery,
+  getImageryAnalysis,
   uploadImagery,
 } from "../services/api";
-
+import AIAnalysisModal
+  from "../components/AIAnalysisModal";
 import {
   useDisaster,
 } from "../context/DisasterContext";
@@ -120,7 +122,22 @@ export default function Imagery() {
     setAnalyzingId,
   ] = useState(null);
 
+  const [
+    analysisLoadingId,
+    setAnalysisLoadingId,
+  ] = useState(null);
 
+
+  const [
+    selectedAnalysis,
+    setSelectedAnalysis,
+  ] = useState(null);
+
+
+  const [
+    selectedAnalysisImagery,
+    setSelectedAnalysisImagery,
+  ] = useState(null);
   /*
   |--------------------------------------------------------------------------
   | UI state
@@ -448,176 +465,236 @@ export default function Imagery() {
   */
 
   async function handleAnalyze(
-  item
-) {
-  if (
-    item.processingStatus !==
-      "UPLOADED" &&
-    item.processingStatus !==
-      "FAILED"
+    item
   ) {
-    return;
-  }
+    if (
+      item.processingStatus !==
+      "UPLOADED" &&
+      item.processingStatus !==
+      "FAILED"
+    ) {
+      return;
+    }
 
 
-  if (analyzingId) {
-    return;
-  }
+    if (analyzingId) {
+      return;
+    }
 
 
-  const previousStatus =
-    item.processingStatus;
+    const previousStatus =
+      item.processingStatus;
 
 
-  try {
-    setAnalyzingId(
-      item.id
-    );
-
-
-    setError("");
-    setSuccessMessage("");
-
-
-    /*
-     * Optimistically show processing
-     * while Express waits for FastAPI.
-     */
-
-    setImagery(
-      (previous) =>
-        previous.map(
-          (current) =>
-            current.id ===
-            item.id
-              ? {
-                  ...current,
-
-                  processingStatus:
-                    "PROCESSING",
-                }
-              : current
-        )
-    );
-
-
-    const response =
-      await analyzeImagery(
+    try {
+      setAnalyzingId(
         item.id
       );
 
 
-    const result =
-      response?.data;
+      setError("");
+      setSuccessMessage("");
 
 
-    const updatedImagery =
-      result?.imagery;
+      /*
+       * Optimistically show processing
+       * while Express waits for FastAPI.
+       */
 
-
-    if (!updatedImagery) {
-      throw new Error(
-        "Backend did not return analyzed imagery."
-      );
-    }
-
-
-    setImagery(
-      (previous) =>
-        previous.map(
-          (current) =>
-            current.id ===
-            updatedImagery.id
-              ? updatedImagery
-              : current
-        )
-    );
-
-
-    const detectionCount =
-      result?.detectionCount ??
-      0;
-
-
-    const findingsCreated =
-      result?.findingsCreated ??
-      0;
-
-
-    setSuccessMessage(
-      `AI analysis complete: ${detectionCount} raw detection${
-        detectionCount === 1
-          ? ""
-          : "s"
-      }, ${findingsCreated} disaster finding${
-        findingsCreated === 1
-          ? ""
-          : "s"
-      }.`
-    );
-
-  } catch (err) {
-    /*
-     * Backend should normally have
-     * persisted FAILED already.
-     *
-     * Refresh the authoritative state.
-     */
-
-    try {
-      if (
-        currentDisaster?.id
-      ) {
-        const response =
-          await getDisasterImagery(
-            currentDisaster.id
-          );
-
-
-        setImagery(
-          response?.data
-            ?.imagery ?? []
-        );
-      }
-
-    } catch {
       setImagery(
         (previous) =>
           previous.map(
             (current) =>
               current.id ===
-              item.id
+                item.id
                 ? {
+                  ...current,
+
+                  processingStatus:
+                    "PROCESSING",
+                }
+                : current
+          )
+      );
+
+
+      const response =
+        await analyzeImagery(
+          item.id
+        );
+
+
+      const result =
+        response?.data;
+
+
+      const updatedImagery =
+        result?.imagery;
+
+
+      if (!updatedImagery) {
+        throw new Error(
+          "Backend did not return analyzed imagery."
+        );
+      }
+
+
+      setImagery(
+        (previous) =>
+          previous.map(
+            (current) =>
+              current.id ===
+                updatedImagery.id
+                ? updatedImagery
+                : current
+          )
+      );
+
+
+      const detectionCount =
+        result?.detectionCount ??
+        0;
+
+
+      const findingsCreated =
+        result?.findingsCreated ??
+        0;
+
+
+      setSuccessMessage(
+        `AI analysis complete: ${detectionCount} raw detection${detectionCount === 1
+          ? ""
+          : "s"
+        }, ${findingsCreated} disaster finding${findingsCreated === 1
+          ? ""
+          : "s"
+        }.`
+      );
+
+    } catch (err) {
+      /*
+       * Backend should normally have
+       * persisted FAILED already.
+       *
+       * Refresh the authoritative state.
+       */
+
+      try {
+        if (
+          currentDisaster?.id
+        ) {
+          const response =
+            await getDisasterImagery(
+              currentDisaster.id
+            );
+
+
+          setImagery(
+            response?.data
+              ?.imagery ?? []
+          );
+        }
+
+      } catch {
+        setImagery(
+          (previous) =>
+            previous.map(
+              (current) =>
+                current.id ===
+                  item.id
+                  ? {
                     ...current,
 
                     processingStatus:
                       previousStatus,
                   }
-                : current
-          )
+                  : current
+            )
+        );
+      }
+
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "AI analysis failed"
       );
+
+    } finally {
+      setAnalyzingId(
+        null
+      );
+    }
+  }
+
+
+  async function handleViewAnalysis(
+    item
+  ) {
+
+    if (
+      item.processingStatus !==
+      "ANALYZED"
+    ) {
+
+      return;
     }
 
 
-    setError(
-      err instanceof Error
-        ? err.message
-        : "AI analysis failed"
-    );
+    try {
 
-  } finally {
-    setAnalyzingId(
-      null
-    );
+      setAnalysisLoadingId(
+        item.id
+      );
+
+      setError(
+        ""
+      );
+
+
+      const response =
+        await getImageryAnalysis(
+          item.id
+        );
+
+
+      const analysisRecord =
+        response?.data?.analysis;
+
+
+      if (
+        !analysisRecord
+      ) {
+
+        throw new Error(
+          "Backend did not return AI analysis."
+        );
+      }
+
+
+      setSelectedAnalysisImagery(
+        item
+      );
+
+      setSelectedAnalysis(
+        analysisRecord
+      );
+
+    } catch (err) {
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load AI analysis"
+      );
+
+    } finally {
+
+      setAnalysisLoadingId(
+        null
+      );
+    }
   }
-}
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | Manual refresh
-  |--------------------------------------------------------------------------
-  */
 
   async function refreshImagery() {
     setSuccessMessage("");
@@ -791,8 +868,8 @@ export default function Imagery() {
 
           <RefreshCw
             className={`w-4 h-4 ${loading
-                ? "animate-spin"
-                : ""
+              ? "animate-spin"
+              : ""
               }`}
           />
 
@@ -1459,11 +1536,109 @@ export default function Imagery() {
                         {item.processingStatus ===
                           "ANALYZED" && (
 
-                            <div className="flex items-center justify-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 py-2.5 text-xs font-semibold text-emerald-500">
+                            <div
+                              className="
+        space-y-2
+      "
+                            >
 
-                              <CheckCircle2 className="w-4 h-4" />
+                              <div
+                                className="
+          flex
+          items-center
+          justify-center
+          gap-2
+          rounded-lg
+          border
+          border-emerald-500/20
+          bg-emerald-500/10
+          py-2.5
+          text-xs
+          font-semibold
+          text-emerald-500
+        "
+                              >
 
-                              AI analysis completed
+                                <CheckCircle2
+                                  className="
+            w-4
+            h-4
+          "
+                                />
+
+                                AI analysis completed
+
+                              </div>
+
+
+                              <button
+                                type="button"
+                                onClick={
+                                  () =>
+                                    handleViewAnalysis(
+                                      item
+                                    )
+                                }
+                                disabled={
+                                  analysisLoadingId !==
+                                  null
+                                }
+                                className="
+          w-full
+          py-2.5
+          rounded-lg
+          border
+          border-violet-500/30
+          bg-violet-500/10
+          hover:bg-violet-500/20
+          text-violet-500
+          text-xs
+          font-bold
+          flex
+          items-center
+          justify-center
+          gap-2
+          transition-colors
+          disabled:opacity-50
+          disabled:cursor-not-allowed
+        "
+                              >
+
+                                {
+                                  analysisLoadingId ===
+                                    item.id
+                                    ? (
+
+                                      <RefreshCw
+                                        className="
+                  w-4
+                  h-4
+                  animate-spin
+                "
+                                      />
+
+                                    )
+                                    : (
+
+                                      <ScanSearch
+                                        className="
+                  w-4
+                  h-4
+                "
+                                      />
+
+                                    )
+                                }
+
+
+                                {
+                                  analysisLoadingId ===
+                                    item.id
+                                    ? "Loading Assessment..."
+                                    : "View AI Assessment"
+                                }
+
+                              </button>
 
                             </div>
 
@@ -1484,6 +1659,31 @@ export default function Imagery() {
         </div>
 
       </div>
+      {selectedAnalysis &&
+  selectedAnalysisImagery && (
+
+    <AIAnalysisModal
+      imagery={
+        selectedAnalysisImagery
+      }
+      record={
+        selectedAnalysis
+      }
+      onClose={
+        () => {
+
+          setSelectedAnalysis(
+            null
+          );
+
+          setSelectedAnalysisImagery(
+            null
+          );
+        }
+      }
+    />
+
+)}
 
     </div>
   );

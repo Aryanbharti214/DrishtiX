@@ -6,21 +6,22 @@ const AUTH_USER_KEY =
   "drishtix_auth_user";
 
 
+const CURRENT_ORIGIN =
+  typeof window !== "undefined"
+    ? window.location.origin
+    : "";
+
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:4000/api/v1";
+  `${CURRENT_ORIGIN}/api/v1`;
 
 
 const BACKEND_ORIGIN =
   import.meta.env.VITE_BACKEND_ORIGIN ||
-  "http://localhost:4000";
+  CURRENT_ORIGIN;
 
 
-/*
-|--------------------------------------------------------------------------
-| Authentication storage
-|--------------------------------------------------------------------------
-*/
 
 export function getAuthToken() {
 
@@ -117,11 +118,6 @@ export function clearAuthToken() {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Core API request
-|--------------------------------------------------------------------------
-*/
 
 async function apiRequest(
   path,
@@ -173,13 +169,7 @@ async function apiRequest(
   }
 
 
-  /*
-   * Invalid login credentials should
-   * simply show a login error.
-   *
-   * Other 401 responses mean the
-   * current session is no longer valid.
-   */
+
   if (
     response.status ===
       401 &&
@@ -216,11 +206,6 @@ async function apiRequest(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Authentication
-|--------------------------------------------------------------------------
-*/
 
 export async function login(
   credentials
@@ -317,11 +302,7 @@ export async function getAuthSession() {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Health
-|--------------------------------------------------------------------------
-*/
+
 
 export async function getHealth() {
 
@@ -379,11 +360,7 @@ export async function getDisaster(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Imagery
-|--------------------------------------------------------------------------
-*/
+
 
 export async function analyzeImagery(
   imageryId
@@ -398,7 +375,14 @@ export async function analyzeImagery(
   );
 }
 
+export async function getImageryAnalysis(
+  imageryId
+) {
 
+  return apiRequest(
+    `/imagery/${imageryId}/analysis`
+  );
+}
 export async function uploadImagery(
   formData
 ) {
@@ -476,13 +460,6 @@ export function getAssetUrl(
   );
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Findings
-|--------------------------------------------------------------------------
-*/
-
 export async function getDisasterFindings(
   disasterId
 ) {
@@ -527,11 +504,6 @@ export async function createManualFinding(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Verification
-|--------------------------------------------------------------------------
-*/
 
 export async function verifyFinding(
   findingId,
@@ -567,13 +539,6 @@ export async function getFindingVerificationHistory(
   );
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Spatial evidence
-|--------------------------------------------------------------------------
-*/
-
 export async function getFindingRelations(
   findingId
 ) {
@@ -594,11 +559,6 @@ export async function getEvidenceClusters(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Fusion
-|--------------------------------------------------------------------------
-*/
 
 export async function generateFusionRecommendation(
   disasterId,
@@ -650,11 +610,7 @@ export async function reviewFusionRecommendation(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Priorities
-|--------------------------------------------------------------------------
-*/
+
 
 export async function getDisasterPriorities(
   disasterId
@@ -664,3 +620,4 @@ export async function getDisasterPriorities(
     `/findings/disaster/${disasterId}/priorities`
   );
 }
+

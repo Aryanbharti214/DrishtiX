@@ -8,8 +8,18 @@ from fastapi import (
     UploadFile,
 )
 
-from schemas.analyze import AnalyzeResponse
-from services.analyze_service import analyze_image
+from fastapi.responses import (
+    FileResponse,
+)
+
+from services.analyze_service import (
+    RESULTS_DIR,
+    analyze_image,
+)
+
+from schemas.analyze import (
+    AnalyzeResponse,
+)
 
 
 router = APIRouter(
@@ -21,19 +31,50 @@ router = APIRouter(
 @router.post(
     "/analyze",
     response_model=AnalyzeResponse,
+    response_model_exclude_none=True,
 )
 async def analyze(
     image: UploadFile = File(...),
     imageId: UUID = Form(...),
 ):
     try:
+
         return await analyze_image(
             image=image,
             image_id=str(imageId),
         )
 
     except ValueError as error:
+
         raise HTTPException(
             status_code=400,
             detail=str(error),
         ) from error
+
+
+@router.get(
+    "/analyze/{image_id}/result"
+)
+async def get_analysis_result(
+    image_id: UUID,
+):
+
+    result_path = (
+        RESULTS_DIR
+        / f"{image_id}_overlay.jpg"
+    )
+
+    if not result_path.exists():
+
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Analysis result image "
+                "not found."
+            ),
+        )
+
+    return FileResponse(
+        path=result_path,
+        media_type="image/jpeg",
+    )
