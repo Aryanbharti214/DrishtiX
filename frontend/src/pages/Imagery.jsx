@@ -9,22 +9,26 @@ import {
   CalendarDays,
   Camera,
   CheckCircle2,
-  Image as ImageIcon,
   MapPin,
   RefreshCw,
   Satellite,
   ScanSearch,
+  Trash2,
   TriangleAlert,
   Upload,
+  X,
 } from "lucide-react";
 
 import {
   analyzeImagery,
+  deleteImagery,
   getAssetUrl,
   getDisasterImagery,
+  getImageryAnalysis,
   uploadImagery,
 } from "../services/api";
-
+import AIAnalysisModal
+  from "../components/AIAnalysisModal";
 import {
   useDisaster,
 } from "../context/DisasterContext";
@@ -120,7 +124,22 @@ export default function Imagery() {
     setAnalyzingId,
   ] = useState(null);
 
+  const [
+    analysisLoadingId,
+    setAnalysisLoadingId,
+  ] = useState(null);
 
+
+  const [
+    selectedAnalysis,
+    setSelectedAnalysis,
+  ] = useState(null);
+
+
+  const [
+    selectedAnalysisImagery,
+    setSelectedAnalysisImagery,
+  ] = useState(null);
   /*
   |--------------------------------------------------------------------------
   | UI state
@@ -136,6 +155,31 @@ export default function Imagery() {
     successMessage,
     setSuccessMessage,
   ] = useState("");
+
+  const [manageMode, setManageMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const selectableImagery = imagery.filter(
+    (item) => !["QUEUED", "PROCESSING"].includes(item.processingStatus)
+  );
+
+  function cancelManage() {
+    setManageMode(false);
+    setSelectedIds(new Set());
+    setConfirmDelete(false);
+  }
+
+  function toggleSelected(item) {
+    if (["QUEUED", "PROCESSING"].includes(item.processingStatus)) return;
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.add(item.id);
+      return next;
+    });
+  }
 
 
   /*
@@ -216,6 +260,12 @@ export default function Imagery() {
     void loadImagery();
   }, [loadImagery]);
 
+  useEffect(() => {
+    setManageMode(false);
+    setSelectedIds(new Set());
+    setConfirmDelete(false);
+  }, [currentDisaster?.id]);
+
 
   /*
   |--------------------------------------------------------------------------
@@ -274,6 +324,19 @@ export default function Imagery() {
     setSelectedFile(
       file
     );
+  }
+
+
+  function clearSelectedFile() {
+    if (uploading) {
+      return;
+    }
+
+    setSelectedFile(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
 
@@ -448,181 +511,271 @@ export default function Imagery() {
   */
 
   async function handleAnalyze(
-  item
-) {
-  if (
-    item.processingStatus !==
-      "UPLOADED" &&
-    item.processingStatus !==
-      "FAILED"
+    item
   ) {
-    return;
-  }
+    if (
+      item.processingStatus !==
+      "UPLOADED" &&
+      item.processingStatus !==
+      "FAILED"
+    ) {
+      return;
+    }
 
 
-  if (analyzingId) {
-    return;
-  }
+    if (analyzingId) {
+      return;
+    }
 
 
-  const previousStatus =
-    item.processingStatus;
+    const previousStatus =
+      item.processingStatus;
 
 
-  try {
-    setAnalyzingId(
-      item.id
-    );
-
-
-    setError("");
-    setSuccessMessage("");
-
-
-    /*
-     * Optimistically show processing
-     * while Express waits for FastAPI.
-     */
-
-    setImagery(
-      (previous) =>
-        previous.map(
-          (current) =>
-            current.id ===
-            item.id
-              ? {
-                  ...current,
-
-                  processingStatus:
-                    "PROCESSING",
-                }
-              : current
-        )
-    );
-
-
-    const response =
-      await analyzeImagery(
+    try {
+      setAnalyzingId(
         item.id
       );
 
 
-    const result =
-      response?.data;
+      setError("");
+      setSuccessMessage("");
 
 
-    const updatedImagery =
-      result?.imagery;
+      /*
+       * Optimistically show processing
+       * while Express waits for FastAPI.
+       */
 
-
-    if (!updatedImagery) {
-      throw new Error(
-        "Backend did not return analyzed imagery."
-      );
-    }
-
-
-    setImagery(
-      (previous) =>
-        previous.map(
-          (current) =>
-            current.id ===
-            updatedImagery.id
-              ? updatedImagery
-              : current
-        )
-    );
-
-
-    const detectionCount =
-      result?.detectionCount ??
-      0;
-
-
-    const findingsCreated =
-      result?.findingsCreated ??
-      0;
-
-
-    setSuccessMessage(
-      `AI analysis complete: ${detectionCount} raw detection${
-        detectionCount === 1
-          ? ""
-          : "s"
-      }, ${findingsCreated} disaster finding${
-        findingsCreated === 1
-          ? ""
-          : "s"
-      }.`
-    );
-
-  } catch (err) {
-    /*
-     * Backend should normally have
-     * persisted FAILED already.
-     *
-     * Refresh the authoritative state.
-     */
-
-    try {
-      if (
-        currentDisaster?.id
-      ) {
-        const response =
-          await getDisasterImagery(
-            currentDisaster.id
-          );
-
-
-        setImagery(
-          response?.data
-            ?.imagery ?? []
-        );
-      }
-
-    } catch {
       setImagery(
         (previous) =>
           previous.map(
             (current) =>
               current.id ===
-              item.id
+                item.id
                 ? {
+                  ...current,
+
+                  processingStatus:
+                    "PROCESSING",
+                }
+                : current
+          )
+      );
+
+
+      const response =
+        await analyzeImagery(
+          item.id
+        );
+
+
+      const result =
+        response?.data;
+
+
+      const updatedImagery =
+        result?.imagery;
+
+
+      if (!updatedImagery) {
+        throw new Error(
+          "Backend did not return analyzed imagery."
+        );
+      }
+
+
+      setImagery(
+        (previous) =>
+          previous.map(
+            (current) =>
+              current.id ===
+                updatedImagery.id
+                ? updatedImagery
+                : current
+          )
+      );
+
+
+      const detectionCount =
+        result?.detectionCount ??
+        0;
+
+
+      const findingsCreated =
+        result?.findingsCreated ??
+        0;
+
+
+      setSuccessMessage(
+        `AI analysis complete: ${detectionCount} raw detection${detectionCount === 1
+          ? ""
+          : "s"
+        }, ${findingsCreated} disaster finding${findingsCreated === 1
+          ? ""
+          : "s"
+        }.`
+      );
+
+    } catch (err) {
+      /*
+       * Backend should normally have
+       * persisted FAILED already.
+       *
+       * Refresh the authoritative state.
+       */
+
+      try {
+        if (
+          currentDisaster?.id
+        ) {
+          const response =
+            await getDisasterImagery(
+              currentDisaster.id
+            );
+
+
+          setImagery(
+            response?.data
+              ?.imagery ?? []
+          );
+        }
+
+      } catch {
+        setImagery(
+          (previous) =>
+            previous.map(
+              (current) =>
+                current.id ===
+                  item.id
+                  ? {
                     ...current,
 
                     processingStatus:
                       previousStatus,
                   }
-                : current
-          )
+                  : current
+            )
+        );
+      }
+
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "AI analysis failed"
       );
+
+    } finally {
+      setAnalyzingId(
+        null
+      );
+    }
+  }
+
+
+  async function handleViewAnalysis(
+    item
+  ) {
+
+    if (
+      item.processingStatus !==
+      "ANALYZED"
+    ) {
+
+      return;
     }
 
 
-    setError(
-      err instanceof Error
-        ? err.message
-        : "AI analysis failed"
-    );
+    try {
 
-  } finally {
-    setAnalyzingId(
-      null
-    );
+      setAnalysisLoadingId(
+        item.id
+      );
+
+      setError(
+        ""
+      );
+
+
+      const response =
+        await getImageryAnalysis(
+          item.id
+        );
+
+
+      const analysisRecord =
+        response?.data?.analysis;
+
+
+      if (
+        !analysisRecord
+      ) {
+
+        throw new Error(
+          "Backend did not return AI analysis."
+        );
+      }
+
+
+      setSelectedAnalysisImagery(
+        item
+      );
+
+      setSelectedAnalysis(
+        analysisRecord
+      );
+
+    } catch (err) {
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load AI analysis"
+      );
+
+    } finally {
+
+      setAnalysisLoadingId(
+        null
+      );
+    }
   }
-}
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | Manual refresh
-  |--------------------------------------------------------------------------
-  */
 
   async function refreshImagery() {
     setSuccessMessage("");
 
     await loadImagery();
+  }
+
+  async function handleDeleteSelected() {
+    try {
+      setDeleting(true);
+      setError("");
+      const count = selectedIds.size;
+      await deleteImagery([...selectedIds]);
+
+      if (
+        selectedAnalysisImagery &&
+        selectedIds.has(selectedAnalysisImagery.id)
+      ) {
+        setSelectedAnalysis(null);
+        setSelectedAnalysisImagery(null);
+      }
+
+      await loadImagery();
+      setSuccessMessage(
+        `${count} imagery record${count === 1 ? "" : "s"} deleted.`
+      );
+      cancelManage();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete imagery"
+      );
+      setConfirmDelete(false);
+    } finally {
+      setDeleting(false);
+    }
   }
 
 
@@ -791,8 +944,8 @@ export default function Imagery() {
 
           <RefreshCw
             className={`w-4 h-4 ${loading
-                ? "animate-spin"
-                : ""
+              ? "animate-spin"
+              : ""
               }`}
           />
 
@@ -913,7 +1066,7 @@ export default function Imagery() {
             </label>
 
 
-            <label className="block cursor-pointer">
+            <label className={`block ${uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
 
               <input
                 ref={
@@ -921,6 +1074,7 @@ export default function Imagery() {
                 }
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
+                disabled={uploading}
                 onChange={
                   handleFileChange
                 }
@@ -964,11 +1118,27 @@ export default function Imagery() {
               />
 
 
-              <p className="text-xs text-[var(--text-secondary)] break-all">
-                {
-                  selectedFile?.name
-                }
-              </p>
+              <div className="flex items-start justify-between gap-3">
+
+                <p className="min-w-0 break-all text-xs text-[var(--text-secondary)]">
+                  {
+                    selectedFile?.name
+                  }
+                </p>
+
+                <button
+                  type="button"
+                  onClick={clearSelectedFile}
+                  disabled={uploading}
+                  aria-label="Remove selected image"
+                  title="Remove selected image"
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-[10px] font-bold text-red-500 transition-colors hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500/40 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+
+              </div>
 
 
               <p className="text-[11px] text-[var(--text-muted)]">
@@ -1171,7 +1341,7 @@ export default function Imagery() {
         <div className="xl:col-span-2 theme-card rounded-xl border border-[var(--border-color)] p-5">
 
 
-          <div className="flex items-center justify-between gap-4 mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
 
             <div>
 
@@ -1192,7 +1362,20 @@ export default function Imagery() {
             </div>
 
 
-            <ImageIcon className="w-5 h-5 text-sky-500" />
+            {!manageMode ? (
+              <button type="button" onClick={() => setManageMode(true)} disabled={imagery.length === 0} className="rounded-lg border border-[var(--border-color)] px-3 py-2 text-xs font-bold hover:bg-[var(--bg-card-hover)] disabled:opacity-50">
+                Manage
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => setSelectedIds(selectedIds.size === selectableImagery.length ? new Set() : new Set(selectableImagery.map((item) => item.id)))} disabled={selectableImagery.length === 0} className="rounded-lg border border-[var(--border-color)] px-3 py-2 text-xs font-bold disabled:opacity-50">
+                  {selectedIds.size === selectableImagery.length && selectableImagery.length > 0 ? "Clear All" : "Select All"}
+                </button>
+                <span className="text-xs text-[var(--text-secondary)]">{selectedIds.size} selected</span>
+                <button type="button" onClick={() => setConfirmDelete(true)} disabled={selectedIds.size === 0} className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3.5 w-3.5" />Delete Selected</button>
+                <button type="button" onClick={cancelManage} className="rounded-lg border border-[var(--border-color)] px-3 py-2 text-xs font-bold">Cancel</button>
+              </div>
+            )}
 
           </div>
 
@@ -1267,8 +1450,15 @@ export default function Imagery() {
                       key={
                         item.id
                       }
-                      className="rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)]"
+                      className={`relative rounded-xl overflow-hidden border bg-[var(--bg-main)] ${selectedIds.has(item.id) ? "border-red-500 ring-1 ring-red-500/30" : "border-[var(--border-color)]"}`}
                     >
+
+                      {manageMode && (
+                        <label className={`absolute right-3 top-3 z-10 flex items-center gap-2 rounded-lg border px-2.5 py-2 text-[10px] font-bold shadow-lg backdrop-blur ${analysisBusy ? "cursor-not-allowed border-slate-500/30 bg-slate-950/80 text-slate-300" : "cursor-pointer border-red-500/35 bg-[var(--bg-card)] text-[var(--text-primary)]"}`} onClick={(event) => event.stopPropagation()}>
+                          <input type="checkbox" checked={selectedIds.has(item.id)} disabled={analysisBusy} onChange={() => toggleSelected(item)} className="h-4 w-4 accent-red-600" />
+                          {analysisBusy ? "Analysis active" : "Select"}
+                        </label>
+                      )}
 
 
                       {/* IMAGE */}
@@ -1459,11 +1649,109 @@ export default function Imagery() {
                         {item.processingStatus ===
                           "ANALYZED" && (
 
-                            <div className="flex items-center justify-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 py-2.5 text-xs font-semibold text-emerald-500">
+                            <div
+                              className="
+        space-y-2
+      "
+                            >
 
-                              <CheckCircle2 className="w-4 h-4" />
+                              <div
+                                className="
+          flex
+          items-center
+          justify-center
+          gap-2
+          rounded-lg
+          border
+          border-emerald-500/20
+          bg-emerald-500/10
+          py-2.5
+          text-xs
+          font-semibold
+          text-emerald-500
+        "
+                              >
 
-                              AI analysis completed
+                                <CheckCircle2
+                                  className="
+            w-4
+            h-4
+          "
+                                />
+
+                                AI analysis completed
+
+                              </div>
+
+
+                              <button
+                                type="button"
+                                onClick={
+                                  () =>
+                                    handleViewAnalysis(
+                                      item
+                                    )
+                                }
+                                disabled={
+                                  analysisLoadingId !==
+                                  null
+                                }
+                                className="
+          w-full
+          py-2.5
+          rounded-lg
+          border
+          border-violet-500/30
+          bg-violet-500/10
+          hover:bg-violet-500/20
+          text-violet-500
+          text-xs
+          font-bold
+          flex
+          items-center
+          justify-center
+          gap-2
+          transition-colors
+          disabled:opacity-50
+          disabled:cursor-not-allowed
+        "
+                              >
+
+                                {
+                                  analysisLoadingId ===
+                                    item.id
+                                    ? (
+
+                                      <RefreshCw
+                                        className="
+                  w-4
+                  h-4
+                  animate-spin
+                "
+                                      />
+
+                                    )
+                                    : (
+
+                                      <ScanSearch
+                                        className="
+                  w-4
+                  h-4
+                "
+                                      />
+
+                                    )
+                                }
+
+
+                                {
+                                  analysisLoadingId ===
+                                    item.id
+                                    ? "Loading Assessment..."
+                                    : "View AI Assessment"
+                                }
+
+                              </button>
 
                             </div>
 
@@ -1484,6 +1772,45 @@ export default function Imagery() {
         </div>
 
       </div>
+      {selectedAnalysis &&
+  selectedAnalysisImagery && (
+
+    <AIAnalysisModal
+      imagery={
+        selectedAnalysisImagery
+      }
+      record={
+        selectedAnalysis
+      }
+      onClose={
+        () => {
+
+          setSelectedAnalysis(
+            null
+          );
+
+          setSelectedAnalysisImagery(
+            null
+          );
+        }
+      }
+    />
+
+)}
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/70 p-4" onMouseDown={(event) => event.target === event.currentTarget && !deleting && setConfirmDelete(false)}>
+          <div className="theme-card w-full max-w-lg rounded-2xl border border-red-500/35 p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div><p className="text-xs font-bold uppercase tracking-widest text-red-500">Destructive action</p><h3 className="mt-2 text-xl font-black">Delete {selectedIds.size} imagery record{selectedIds.size === 1 ? "" : "s"}?</h3></div>
+              <button type="button" disabled={deleting} onClick={() => setConfirmDelete(false)} className="rounded-lg border border-[var(--border-color)] p-2"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">The selected imagery and associated AI runs, findings, evidence relationships, overlays, and original uploads will be removed. This action cannot be undone.</p>
+            <div className="mt-4 max-h-36 space-y-1 overflow-y-auto rounded-lg bg-[var(--bg-main)] p-3 text-xs text-[var(--text-secondary)]">{imagery.filter((item) => selectedIds.has(item.id)).map((item) => <p key={item.id}>{item.originalFilename}</p>)}</div>
+            <div className="mt-6 flex justify-end gap-2"><button type="button" disabled={deleting} onClick={() => setConfirmDelete(false)} className="rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-bold">Cancel</button><button type="button" disabled={deleting} onClick={handleDeleteSelected} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50">{deleting ? "Deleting..." : "Delete Selected"}</button></div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -90,3 +90,57 @@ export async function analyzeImageWithAI(
 
   return response.data;
 }
+
+
+export async function fetchAIResultImage(
+  resultPath: string
+): Promise<Buffer> {
+
+  if (
+    !resultPath.startsWith(
+      "/api/v1/analyze/"
+    )
+  ) {
+    throw new Error(
+      "Invalid AI result image path"
+    );
+  }
+
+
+  const response =
+    await aiClient.get(
+      resultPath,
+      {
+        responseType:
+          "arraybuffer",
+
+        timeout:
+          30_000,
+      }
+    );
+
+
+  return Buffer.from(
+    response.data
+  );
+}
+
+export async function deleteAIResultImage(
+  imageId: string
+) {
+  try {
+    await aiClient.delete(
+      `/api/v1/analyze/${imageId}/result`,
+      { timeout: 10_000 }
+    );
+    return true;
+  } catch (error) {
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.status === 404
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}

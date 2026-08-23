@@ -1,10 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import {
-  refreshFindingCorrelationBestEffort,
-} from "../findings/finding-correlation.service.js";
+
 import {
   analyzeImageWithAI,
+  fetchAIResultImage,
 } from "../../integrations/ai/ai.client.js";
 
 import {
@@ -16,11 +15,16 @@ import {
   markAIRunProcessing,
   completeAIRun,
   failAIRun,
+  findLatestSuccessfulAIRunByImagery,
 } from "../ai-runs/ai-run.repository.js";
 
 import {
   createFinding,
 } from "../findings/finding.repository.js";
+
+import {
+  refreshFindingCorrelationBestEffort,
+} from "../findings/finding-correlation.service.js";
 
 import {
   aiAnalysisResponseSchema,
@@ -35,10 +39,21 @@ import {
 } from "./imagery.repository.js";
 
 
+/*
+|--------------------------------------------------------------------------
+| Analyze imagery
+|--------------------------------------------------------------------------
+*/
+
 export async function analyzeImageryService(
   imageryId: string
 ) {
- 
+
+  /*
+  |--------------------------------------------------------------------------
+  | Load imagery
+  |--------------------------------------------------------------------------
+  */
 
   const imagery =
     await getImageryByIdService(
@@ -46,14 +61,19 @@ export async function analyzeImageryService(
     );
 
 
- 
+  /*
+  |--------------------------------------------------------------------------
+  | Prevent duplicate / concurrent analysis
+  |--------------------------------------------------------------------------
+  */
 
   if (
     imagery.processingStatus ===
-    "QUEUED" ||
+      "QUEUED" ||
     imagery.processingStatus ===
-    "PROCESSING"
+      "PROCESSING"
   ) {
+
     throw new AppError(
       409,
       "IMAGERY_ANALYSIS_IN_PROGRESS",
@@ -66,6 +86,7 @@ export async function analyzeImageryService(
     imagery.processingStatus ===
     "ANALYZED"
   ) {
+
     throw new AppError(
       409,
       "IMAGERY_ALREADY_ANALYZED",
@@ -74,6 +95,11 @@ export async function analyzeImageryService(
   }
 
 
+  /*
+  |--------------------------------------------------------------------------
+  | Resolve original uploaded image
+  |--------------------------------------------------------------------------
+  */
 
   const imagePath =
     path.resolve(
@@ -83,10 +109,13 @@ export async function analyzeImageryService(
 
 
   try {
+
     await fs.access(
       imagePath
     );
+
   } catch {
+
     throw new AppError(
       404,
       "IMAGERY_FILE_NOT_FOUND",
@@ -95,7 +124,12 @@ export async function analyzeImageryService(
   }
 
 
- 
+  /*
+  |--------------------------------------------------------------------------
+  | Create AI run
+  |--------------------------------------------------------------------------
+  */
+
   const aiRun =
     await createAIRun(
       imagery.id
@@ -103,7 +137,12 @@ export async function analyzeImageryService(
 
 
   try {
-   
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mark processing
+    |--------------------------------------------------------------------------
+    */
 
     await markAIRunProcessing(
       aiRun.id
@@ -116,13 +155,18 @@ export async function analyzeImageryService(
     );
 
 
-  
+    /*
+    |--------------------------------------------------------------------------
+    | Call FastAPI AI service
+    |--------------------------------------------------------------------------
+    */
 
     let aiResponse:
       unknown;
 
 
     try {
+
       aiResponse =
         await analyzeImageWithAI({
           imagePath,
@@ -138,6 +182,7 @@ export async function analyzeImageryService(
         });
 
     } catch (error) {
+
       const message =
         error instanceof Error
           ? error.message
@@ -152,7 +197,11 @@ export async function analyzeImageryService(
     }
 
 
-   
+    /*
+    |--------------------------------------------------------------------------
+    | Validate AI response
+    |--------------------------------------------------------------------------
+    */
 
     const parsed =
       aiAnalysisResponseSchema
@@ -161,7 +210,10 @@ export async function analyzeImageryService(
         );
 
 
-    if (!parsed.success) {
+    if (
+      !parsed.success
+    ) {
+
       console.error(
         "Invalid AI response:",
         parsed.error.flatten()
@@ -180,11 +232,17 @@ export async function analyzeImageryService(
       parsed.data;
 
 
-  
+    /*
+    |--------------------------------------------------------------------------
+    | Ensure correct imagery
+    |--------------------------------------------------------------------------
+    */
+
     if (
       result.imageId !==
       imagery.id
     ) {
+
       throw new AppError(
         502,
         "AI_IMAGE_ID_MISMATCH",
@@ -193,11 +251,119 @@ export async function analyzeImageryService(
     }
 
 
-  
+    /*
+    |--------------------------------------------------------------------------
+    | Persist segmentation overlay
+    |--------------------------------------------------------------------------
+    |
+    | FastAPI generates the segmentation visualization.
+    |
+    | We copy that visualization into backend/uploads so:
+    |
+    | frontend -> Node
+    |
+    | instead of:
+    |
+    | frontend -> FastAPI
+    |
+    |--------------------------------------------------------------------------
+    */
+
+    let persistedResultImage:
+      string | undefined;
+
+
+    if (
+      result.resultImage
+    ) {
+
+      try {
+
+        const overlayBuffer =
+          await fetchAIResultImage(
+            result.resultImage
+          );
+
+
+        const overlayFilename =
+          `${imagery.id}-analysis.jpg`;
+
+
+        const uploadsDirectory =
+          path.resolve(
+            "uploads"
+          );
+
+
+        await fs.mkdir(
+          uploadsDirectory,
+          {
+            recursive: true,
+          }
+        );
+
+
+        const overlayPath =
+          path.join(
+            uploadsDirectory,
+            overlayFilename
+          );
+
+
+        await fs.writeFile(
+          overlayPath,
+          overlayBuffer
+        );
+
+
+        persistedResultImage =
+          `/uploads/${overlayFilename}`;
+
+      } catch (error) {
+
+        /*
+         * Overlay persistence is useful,
+         * but inference itself already succeeded.
+         *
+         * Therefore visualization failure should
+         * not mark the entire AI analysis as failed.
+         */
+
+        console.error(
+          "Failed to persist AI result image:",
+          error
+        );
+      }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Normalize user-facing result
+    |--------------------------------------------------------------------------
+    |
+    | Replace FastAPI's internal result path with
+    | the backend-owned uploaded asset.
+    |--------------------------------------------------------------------------
+    */
+
+    const normalizedResult = {
+      ...result,
+
+      resultImage:
+        persistedResultImage,
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Persist actionable findings
+    |--------------------------------------------------------------------------
+    */
 
     for (
       const finding
-      of result.findings
+      of normalizedResult.findings
     ) {
 
       const createdFinding =
@@ -215,36 +381,63 @@ export async function analyzeImageryService(
         });
 
 
+      /*
+       * Generate / refresh spatial correlation
+       * without making finding persistence depend
+       * on correlation success.
+       */
+
       await refreshFindingCorrelationBestEffort(
         createdFinding.id
       );
-
     }
 
 
-    
+    /*
+    |--------------------------------------------------------------------------
+    | Complete AI run
+    |--------------------------------------------------------------------------
+    |
+    | rawOutput stores:
+    |
+    | - model metadata
+    | - priority
+    | - findings
+    | - segmentation summary
+    | - backend result image
+    |--------------------------------------------------------------------------
+    */
 
     await completeAIRun(
       aiRun.id,
       {
         modelName:
-          result.model.name,
+          normalizedResult
+            .model
+            .name,
 
         modelVersion:
-          result.model.version,
+          normalizedResult
+            .model
+            .version,
 
         processingTimeMs:
           Math.round(
-            result.processingTimeMs
+            normalizedResult
+              .processingTimeMs
           ),
 
         rawOutput:
-          result,
+          normalizedResult,
       }
     );
 
 
-   
+    /*
+    |--------------------------------------------------------------------------
+    | Mark imagery analyzed
+    |--------------------------------------------------------------------------
+    */
 
     const updatedImagery =
       await updateImageryStatus(
@@ -253,7 +446,12 @@ export async function analyzeImageryService(
       );
 
 
-   
+    /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
+
     return {
       imagery:
         updatedImagery,
@@ -262,16 +460,27 @@ export async function analyzeImageryService(
         aiRun.id,
 
       detectionCount:
-        result.detections.length,
+        normalizedResult
+          .detections
+          .length,
 
       findingsCreated:
-        result.findings.length,
+        normalizedResult
+          .findings
+          .length,
 
       analysis:
-        result,
+        normalizedResult,
     };
 
   } catch (error) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Failure handling
+    |--------------------------------------------------------------------------
+    */
+
     const message =
       error instanceof Error
         ? error.message
@@ -292,4 +501,72 @@ export async function analyzeImageryService(
 
     throw error;
   }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Get saved imagery analysis
+|--------------------------------------------------------------------------
+|
+| Allows the frontend to retrieve the AI assessment after:
+|
+| - browser refresh
+| - logout/login
+| - page navigation
+|
+| The analysis comes from ai_runs.raw_output.
+|--------------------------------------------------------------------------
+*/
+
+export async function getImageryAnalysisService(
+  imageryId: string
+) {
+
+  /*
+   * Verify that the imagery actually exists.
+   */
+
+  await getImageryByIdService(
+    imageryId
+  );
+
+
+  const aiRun =
+    await findLatestSuccessfulAIRunByImagery(
+      imageryId
+    );
+
+
+  if (
+    !aiRun
+  ) {
+
+    throw new AppError(
+      404,
+      "IMAGERY_ANALYSIS_NOT_FOUND",
+      "No successful AI analysis exists for this imagery"
+    );
+  }
+
+
+  return {
+    aiRunId:
+      aiRun.id,
+
+    modelName:
+      aiRun.model_name,
+
+    modelVersion:
+      aiRun.model_version,
+
+    processingTimeMs:
+      aiRun.processing_time_ms,
+
+    completedAt:
+      aiRun.completed_at,
+
+    analysis:
+      aiRun.raw_output,
+  };
 }

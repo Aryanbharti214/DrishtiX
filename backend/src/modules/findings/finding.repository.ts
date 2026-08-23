@@ -14,49 +14,49 @@ interface FindingRow {
   disaster_id: string;
 
   imagery_id:
-    string | null;
+  string | null;
 
   ai_run_id:
-    string | null;
+  string | null;
 
   finding_type:
-    string;
+  string;
 
   severity:
-    string | null;
+  string | null;
 
   confidence:
-    number | null;
+  number | null;
 
   latitude:
-    number | null;
+  number | null;
 
   longitude:
-    number | null;
+  number | null;
 
   prediction:
-    unknown;
+  unknown;
 
   bbox:
-    unknown;
+  unknown;
 
   verification_status:
-    string;
+  string;
 
   source:
-    string;
+  string;
 
   title:
-    string | null;
+  string | null;
 
   description:
-    string | null;
+  string | null;
 
   created_at:
-    Date;
+  Date;
 
   updated_at:
-    Date;
+  Date;
 }
 
 
@@ -180,15 +180,16 @@ export async function createFinding(
         input.finding.type,
 
         input.finding.severity ??
-          null,
+        null,
+        input.finding.confidence ??
+        null,
 
-        input.finding.confidence,
 
         input.finding.latitude ??
-          null,
+        null,
 
         input.finding.longitude ??
-          null,
+        null,
 
         JSON.stringify(
           input.finding.prediction
@@ -196,15 +197,15 @@ export async function createFinding(
 
         input.finding.bbox
           ? JSON.stringify(
-              input.finding.bbox
-            )
+            input.finding.bbox
+          )
           : null,
 
         input.finding.title ??
-          null,
+        null,
 
         input.finding.description ??
-          null,
+        null,
       ]
     );
 
@@ -258,7 +259,7 @@ export async function createManualFinding(
         input.disasterId,
 
         input.imageryId ??
-          null,
+        null,
 
         input.type,
 
@@ -279,7 +280,7 @@ export async function createManualFinding(
         input.title,
 
         input.description ??
-          null,
+        null,
       ]
     );
 
@@ -360,7 +361,7 @@ export async function findFindingById(
 
   return finding
     ? mapFinding(
-        finding
-      )
+      finding
+    )
     : null;
 }

@@ -3,14 +3,19 @@ import React, {
 } from "react";
 
 import {
+  ArrowLeft,
   Eye,
   EyeOff,
   KeyRound,
   Loader2,
   LockKeyhole,
+  Moon,
   ShieldCheck,
+  Sun,
   UserRound,
 } from "lucide-react";
+import BrandName from "../components/BrandName";
+import { useSettings } from "../context/SettingsContext";
 
 import {
   login,
@@ -19,7 +24,10 @@ import {
 
 export default function Login({
   onLogin,
+  onBack,
 }) {
+
+  const { isDarkMode, setIsDarkMode } = useSettings();
 
   const [
     credentials,
@@ -170,6 +178,7 @@ export default function Login({
   return (
     <div
       className="
+        login-page
         min-h-screen
         bg-gradient-to-br
         from-slate-950
@@ -184,6 +193,14 @@ export default function Login({
         overflow-hidden
       "
     >
+
+      <button type="button" onClick={onBack} className="absolute left-5 top-5 z-20 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-bold text-slate-300 hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
+
+      <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"} className="login-theme-toggle absolute right-5 top-5 z-20 rounded-lg border border-slate-700 bg-slate-900/80 p-2 text-slate-300 hover:text-white">
+        {isDarkMode ? <Sun className="h-4 w-4 text-amber-300" /> : <Moon className="h-4 w-4 text-blue-700" />}
+      </button>
 
       {/* BACKGROUND */}
 
@@ -219,6 +236,7 @@ export default function Login({
 
       <div
         className="
+          login-card
           w-full
           max-w-[440px]
           rounded-2xl
@@ -288,7 +306,7 @@ export default function Login({
                 text-white
               "
             >
-              DRISHTIX
+              <BrandName />
             </h1>
 
 

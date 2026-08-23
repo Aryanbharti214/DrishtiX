@@ -10,6 +10,7 @@ import React, {
 import {
   getDisasters,
   createDisaster as createDisasterRequest,
+  deleteDisasters as deleteDisastersRequest,
 } from "../services/api";
 
 const DisasterContext = createContext(null);
@@ -59,6 +60,7 @@ export function DisasterProvider({ children }) {
                 );
 
               if (stillExists) {
+                localStorage.setItem(STORAGE_KEY, stillExists.id);
                 return stillExists;
               }
             }
@@ -81,6 +83,7 @@ export function DisasterProvider({ children }) {
                 );
 
               if (storedDisaster) {
+                localStorage.setItem(STORAGE_KEY, storedDisaster.id);
                 return storedDisaster;
               }
             }
@@ -88,7 +91,13 @@ export function DisasterProvider({ children }) {
             /*
              * Otherwise select newest disaster.
              */
-            return disasterList[0] ?? null;
+            const fallback = disasterList[0] ?? null;
+            if (fallback) {
+              localStorage.setItem(STORAGE_KEY, fallback.id);
+            } else {
+              localStorage.removeItem(STORAGE_KEY);
+            }
+            return fallback;
           }
         );
       } catch (err) {
@@ -182,6 +191,13 @@ export function DisasterProvider({ children }) {
     }
   }
 
+  async function removeDisasters(ids) {
+    setError(null);
+    const response = await deleteDisastersRequest(ids);
+    await refreshDisasters();
+    return response?.data;
+  }
+
   const value = useMemo(
     () => ({
       disasters,
@@ -191,6 +207,7 @@ export function DisasterProvider({ children }) {
 
       selectDisaster,
       addDisaster,
+      removeDisasters,
       refreshDisasters,
     }),
     [

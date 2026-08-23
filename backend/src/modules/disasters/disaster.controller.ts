@@ -6,16 +6,44 @@ import type {
 
 import {
   createDisasterSchema,
+  bulkDeleteDisastersSchema,
   updateDisasterSchema,
   disasterIdSchema,
 } from "./disaster.types.js";
 
 import {
   createDisasterService,
+  bulkDeleteDisastersService,
   getAllDisastersService,
   getDisasterByIdService,
   updateDisasterService,
 } from "./disaster.service.js";
+
+export async function bulkDeleteDisastersController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const parsed = bulkDeleteDisastersSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Provide between 1 and 100 valid disaster IDs",
+        },
+      });
+      return;
+    }
+
+    const result = await bulkDeleteDisastersService(parsed.data.ids);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function createDisasterController(
   req: Request,

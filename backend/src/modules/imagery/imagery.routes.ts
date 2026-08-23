@@ -15,7 +15,9 @@ import {
 
 import {
   analyzeImageryController,
+  bulkDeleteImageryController,
   getDisasterImageryController,
+  getImageryAnalysisController,
   getImageryByIdController,
   uploadImageryController,
 } from "./imagery.controller.js";
@@ -23,6 +25,15 @@ import {
 
 export const imageryRouter =
   Router();
+
+imageryRouter.delete(
+  "/bulk",
+  requireRole(
+    "RESPONDER",
+    "COMMANDER"
+  ),
+  bulkDeleteImageryController
+);
 
 
 
@@ -61,7 +72,10 @@ imageryRouter.get(
   "/disaster/:disasterId",
   getDisasterImageryController
 );
-
+imageryRouter.get(
+  "/:id/analysis",
+  getImageryAnalysisController
+);
 
 imageryRouter.get(
   "/:id",

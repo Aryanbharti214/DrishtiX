@@ -205,7 +205,7 @@ export default function EvidenceIntelligencePanel({
     border
     border-slate-700/80
 
-    bg-[var(--bg-card)]
+    bg-[var(--bg-main)]
 
     shadow-[0_24px_80px_rgba(0,0,0,0.65)]
   "
@@ -213,7 +213,7 @@ export default function EvidenceIntelligencePanel({
       <div className="
   shrink-0
   z-10
-  bg-[var(--bg-card)]
+  bg-[var(--bg-main)]
   border-b
   border-[var(--border-color)]
   px-5
@@ -258,11 +258,11 @@ export default function EvidenceIntelligencePanel({
       </div>
 
 
-      <div className="flex-1overflow-y-autop-5space-y-5bg-[var(--bg-card)]">
+      <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-[var(--bg-main)]">
 
 
 
-        <div className="rounded-xlborderborder-orange-500/25bg-orange-500/[0.04]p-4">
+        <div className="rounded-xl border border-orange-500/25 bg-orange-500/[0.04] p-4">
 
           <div className="flex items-start justify-between gap-3">
 
@@ -487,7 +487,7 @@ export default function EvidenceIntelligencePanel({
                   key={
                     relation.id
                   }
-                  className="rounded-xlborderborder-[var(--border-color)]bg-[var(--bg-main)]overflow-hiddenshadow-sm">
+                  className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] overflow-hidden shadow-sm">
 
                   <div
                     className={`flex items-center gap-2 border-b px-4 py-3 ${meta.className}`}
@@ -542,7 +542,7 @@ export default function EvidenceIntelligencePanel({
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
 
-                      <div className="rounded-lgborderborder-[var(--border-color)]bg-[var(--bg-card-hover)]p-3">
+                      <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-hover)] p-3">
 
                         <p className="text-[var(--text-secondary)]">
                           Distance
@@ -559,7 +559,7 @@ export default function EvidenceIntelligencePanel({
                       </div>
 
 
-                      <div className="rounded-lgborderborder-[var(--border-color)]bg-[var(--bg-card-hover)]p-3">
+                      <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-hover)] p-3">
 
                         <p className="text-[var(--text-secondary)]">
                           Relationship Strength

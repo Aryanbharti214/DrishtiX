@@ -16,12 +16,6 @@ const BACKEND_ORIGIN =
   "http://localhost:4000";
 
 
-/*
-|--------------------------------------------------------------------------
-| Authentication storage
-|--------------------------------------------------------------------------
-*/
-
 export function getAuthToken() {
 
   return sessionStorage.getItem(
@@ -117,11 +111,6 @@ export function clearAuthToken() {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Core API request
-|--------------------------------------------------------------------------
-*/
 
 async function apiRequest(
   path,
@@ -173,13 +162,7 @@ async function apiRequest(
   }
 
 
-  /*
-   * Invalid login credentials should
-   * simply show a login error.
-   *
-   * Other 401 responses mean the
-   * current session is no longer valid.
-   */
+
   if (
     response.status ===
       401 &&
@@ -216,11 +199,6 @@ async function apiRequest(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Authentication
-|--------------------------------------------------------------------------
-*/
 
 export async function login(
   credentials
@@ -317,11 +295,7 @@ export async function getAuthSession() {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Health
-|--------------------------------------------------------------------------
-*/
+
 
 export async function getHealth() {
 
@@ -378,12 +352,23 @@ export async function getDisaster(
   );
 }
 
+export async function deleteDisasters(
+  ids
+) {
+  return apiRequest(
+    "/disasters/bulk",
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ids }),
+    }
+  );
+}
 
-/*
-|--------------------------------------------------------------------------
-| Imagery
-|--------------------------------------------------------------------------
-*/
+
+
 
 export async function analyzeImagery(
   imageryId
@@ -398,7 +383,14 @@ export async function analyzeImagery(
   );
 }
 
+export async function getImageryAnalysis(
+  imageryId
+) {
 
+  return apiRequest(
+    `/imagery/${imageryId}/analysis`
+  );
+}
 export async function uploadImagery(
   formData
 ) {
@@ -432,6 +424,21 @@ export async function getImageryById(
 
   return apiRequest(
     `/imagery/${imageryId}`
+  );
+}
+
+export async function deleteImagery(
+  ids
+) {
+  return apiRequest(
+    "/imagery/bulk",
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ids }),
+    }
   );
 }
 
@@ -475,13 +482,6 @@ export function getAssetUrl(
     `${BACKEND_ORIGIN}${normalizedPath}`
   );
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Findings
-|--------------------------------------------------------------------------
-*/
 
 export async function getDisasterFindings(
   disasterId
@@ -527,11 +527,6 @@ export async function createManualFinding(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Verification
-|--------------------------------------------------------------------------
-*/
 
 export async function verifyFinding(
   findingId,
@@ -567,13 +562,6 @@ export async function getFindingVerificationHistory(
   );
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Spatial evidence
-|--------------------------------------------------------------------------
-*/
-
 export async function getFindingRelations(
   findingId
 ) {
@@ -594,11 +582,6 @@ export async function getEvidenceClusters(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Fusion
-|--------------------------------------------------------------------------
-*/
 
 export async function generateFusionRecommendation(
   disasterId,
@@ -650,11 +633,7 @@ export async function reviewFusionRecommendation(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Priorities
-|--------------------------------------------------------------------------
-*/
+
 
 export async function getDisasterPriorities(
   disasterId
@@ -664,3 +643,4 @@ export async function getDisasterPriorities(
     `/findings/disaster/${disasterId}/priorities`
   );
 }
+

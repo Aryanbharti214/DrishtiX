@@ -1,41 +1,11 @@
 from typing import Any, Literal
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-)
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ModelInfo(BaseModel):
     name: str
     version: str
-
-
-class RawDetection(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True
-    )
-
-    class_id: int = Field(
-        alias="classId",
-        ge=0,
-    )
-
-    class_name: str = Field(
-        alias="className",
-        min_length=1,
-    )
-
-    confidence: float = Field(
-        ge=0.0,
-        le=1.0,
-    )
-
-    bbox: list[float] = Field(
-        min_length=4,
-        max_length=4,
-    )
 
 
 class Finding(BaseModel):
@@ -59,7 +29,8 @@ class Finding(BaseModel):
     title: str | None = None
     description: str | None = None
 
-    confidence: float = Field(
+    confidence: float | None = Field(
+        default=None,
         ge=0.0,
         le=1.0,
     )
@@ -85,19 +56,89 @@ class Finding(BaseModel):
     prediction: dict[str, Any]
 
 
+class SegmentationFinding(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True
+    )
+
+    type: str
+    severity: str
+
+    pixel_count: int = Field(
+        alias="pixelCount",
+        ge=0,
+    )
+
+    area_percentage: float = Field(
+        alias="areaPercentage",
+        ge=0.0,
+        le=100.0,
+    )
+
+    bbox: list[float] | None = None
+
+    prediction: dict[str, Any]
+
+
+class PriorityImpact(BaseModel):
+    buildings: str
+    roads: str
+    water: str
+
+
+class PriorityComponents(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True
+    )
+
+    building_impact: float = Field(
+        alias="buildingImpact"
+    )
+
+    road_impact: float = Field(
+        alias="roadImpact"
+    )
+
+    water_extent: float = Field(
+        alias="waterExtent"
+    )
+
+
+class PriorityResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True
+    )
+
+    score: float
+
+    level: str
+
+    response_priority: str = Field(
+        alias="responsePriority"
+    )
+
+    impact: PriorityImpact
+
+    recommended_action: str = Field(
+        alias="recommendedAction"
+    )
+
+    reasons: list[str]
+
+    components: PriorityComponents
+
+
 class AnalyzeResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True
     )
 
     image_id: str = Field(
-        alias="imageId",
-        min_length=1,
+        alias="imageId"
     )
 
     analysis_type: Literal[
-        "GENERIC_OBJECT_DETECTION",
-        "DISASTER_DAMAGE_ASSESSMENT",
+        "DISASTER_DAMAGE_ASSESSMENT"
     ] = Field(
         alias="analysisType"
     )
@@ -109,10 +150,23 @@ class AnalyzeResponse(BaseModel):
         ge=0,
     )
 
-    detections: list[RawDetection] = Field(
+    result_image: str = Field(
+        alias="resultImage"
+    )
+
+    priority: PriorityResult
+
+    detections: list[dict[str, Any]] = Field(
         default_factory=list
     )
 
     findings: list[Finding] = Field(
         default_factory=list
+    )
+
+    segmentation_summary: list[
+        SegmentationFinding
+    ] = Field(
+        alias="segmentationSummary",
+        default_factory=list,
     )

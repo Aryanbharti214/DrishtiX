@@ -159,3 +159,83 @@ export async function updateDisaster(
     ? mapDisaster(disaster)
     : null;
 }
+
+interface DisasterDeleteRow {
+  id: string;
+  name: string;
+}
+
+interface DisasterImageryAssetRow {
+  id: string;
+  stored_filename: string;
+  processing_status: string;
+}
+
+export async function bulkDeleteDisasters(
+  ids: string[]
+) {
+  const uniqueIds = [...new Set(ids)];
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const disasters = await client.query<DisasterDeleteRow>(
+      `SELECT id, name FROM disasters WHERE id = ANY($1::uuid[]) FOR UPDATE`,
+      [uniqueIds]
+    );
+
+    if (disasters.rowCount !== uniqueIds.length) {
+      await client.query("ROLLBACK");
+      return { kind: "missing" as const };
+    }
+
+    const assets = await client.query<DisasterImageryAssetRow>(
+      `
+        SELECT id, stored_filename, processing_status
+        FROM imagery
+        WHERE disaster_id = ANY($1::uuid[])
+        FOR UPDATE
+      `,
+      [uniqueIds]
+    );
+
+    const active = assets.rows.filter((item) =>
+      ["QUEUED", "PROCESSING"].includes(item.processing_status)
+    );
+
+    if (active.length > 0) {
+      await client.query("ROLLBACK");
+      return {
+        kind: "active" as const,
+        imageryIds: active.map((item) => item.id),
+      };
+    }
+
+    await client.query(
+      `DELETE FROM fusion_recommendations WHERE disaster_id = ANY($1::uuid[])`,
+      [uniqueIds]
+    );
+
+    await client.query(
+      `DELETE FROM disasters WHERE id = ANY($1::uuid[])`,
+      [uniqueIds]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      kind: "deleted" as const,
+      disasters: disasters.rows,
+      assets: assets.rows.map((item) => ({
+        id: item.id,
+        storedFilename: item.stored_filename,
+      })),
+    };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}

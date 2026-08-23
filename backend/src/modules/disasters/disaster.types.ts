@@ -52,6 +52,10 @@ export const updateDisasterSchema = createDisasterSchema
 
 export const disasterIdSchema = z.string().uuid();
 
+export const bulkDeleteDisastersSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(100),
+});
+
 export type CreateDisasterInput =
   z.infer<typeof createDisasterSchema>;
 
