@@ -5,6 +5,7 @@ import { checkAIServiceHealth } from "../integrations/ai/ai.client.js";
 import { disasterRouter } from "../modules/disasters/disaster.routes.js";
 import {imageryRouter,} from "../modules/imagery/imagery.routes.js";
 import {findingRouter,} from "../modules/findings/finding.routes.js";
+import { routingRouter } from "../modules/routing/routing.routes.js";
 import {
   authRouter,
 } from "../modules/auth/auth.routes.js";
@@ -65,4 +66,9 @@ apiRouter.use(
 apiRouter.use(
   "/findings",
   findingRouter
+);
+
+apiRouter.use(
+  "/routing",
+  routingRouter
 );

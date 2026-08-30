@@ -8,6 +8,7 @@ import React, {
 import {
   CircleMarker,
   MapContainer,
+  Marker,
   Pane,
   Polyline,
   Popup,
@@ -17,19 +18,25 @@ import {
   useMapEvents,
 } from "react-leaflet";
 
+import { divIcon } from "leaflet";
+
 import {
   AlertTriangle,
   Bot,
   CheckCircle2,
   Crosshair,
+  Clock3,
   Filter,
   LocateFixed,
   Hospital,
+  Flame,
   Layers3,
   MapPin,
   Plus,
   Radio,
   RefreshCw,
+  Route,
+  Search,
   ShieldAlert,
   TriangleAlert,
   UserRound,
@@ -37,6 +44,8 @@ import {
 } from "lucide-react";
 
 import {
+  autocompleteRouteLocation,
+  calculateEmergencyRoutes,
   createManualFinding,
   generateFusionRecommendation,
   getDisasterFindings,
@@ -44,6 +53,7 @@ import {
   getFindingById,
   getFindingRelations,
   getFusionRecommendations,
+  getNearbyFireStations,
   reviewFusionRecommendation,
 } from "../services/api";
 import EvidenceIntelligencePanel
@@ -86,6 +96,32 @@ const SATELLITE_REFERENCE_TILE_URL =
 
 const SATELLITE_REFERENCE_ATTRIBUTION =
   "Reference labels &copy; Esri";
+
+const createEmergencyMarkerIcon = (kind, label, iconSvg) => divIcon({
+  className: "emergency-map-marker-wrapper",
+  html: `<div class="emergency-map-marker emergency-map-marker--${kind}"><span class="emergency-map-marker__symbol">${iconSvg}</span></div>${label ? `<span class="emergency-map-marker__label emergency-map-marker__label--${kind}">${label}</span>` : ""}`,
+  iconAnchor: [18, 36],
+  iconSize: [36, 36],
+  popupAnchor: [0, -38],
+});
+
+const FIRE_STATION_ICON = createEmergencyMarkerIcon(
+  "fire",
+  "",
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c4.4 0 8-3.6 8-8 0-4-2.5-7.5-6.5-11 .1 2.7-1.3 5.1-3.3 6.5.1-2.1-.8-3.7-2.2-5C7.7 8 4 10.7 4 15c0 3.9 3.6 7 8 7Z"/><path d="M9 18c0-2 1.3-3.4 3.4-5.2.1 1.4.8 2.3 1.7 3.2.6.6.9 1.3.9 2 0 1.7-1.3 3-3 3s-3-1.3-3-3Z"/></svg>',
+);
+
+const ROUTE_START_ICON = createEmergencyMarkerIcon(
+  "start",
+  "START",
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-1.6-5.4L5 12Z"/></svg>',
+);
+
+const ROUTE_INCIDENT_ICON = createEmergencyMarkerIcon(
+  "incident",
+  "INCIDENT",
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z"/><path class="emergency-map-marker__cutout" d="M12 8v5.5M12 17h.01"/></svg>',
+);
 
 
 const INITIAL_REPORT_FORM = {
@@ -196,6 +232,34 @@ function RegionViewportController({ center }) {
   return null;
 }
 
+function RouteFitController({ route, origin, destination }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!route?.geometry?.coordinates?.length || !origin || !destination) return;
+    const coordinates = route.geometry.coordinates.map(([longitude, latitude]) => [latitude, longitude]);
+    map.fitBounds([[origin.latitude, origin.longitude], ...coordinates, [destination.latitude, destination.longitude]], { padding: [55, 55] });
+  }, [destination, map, origin, route]);
+  return null;
+}
+
+function distanceKm(first, second) {
+  const radians = (value) => value * Math.PI / 180;
+  const dLat = radians(second.latitude - first.latitude);
+  const dLon = radians(second.longitude - first.longitude);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(first.latitude)) * Math.cos(radians(second.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatRouteDuration(seconds) {
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
+}
+
+function formatRouteDistance(meters) {
+  return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
+}
+
 
 /*
 |--------------------------------------------------------------------------
@@ -271,9 +335,22 @@ export default function DisasterMap() {
   const [mapView, setMapView] = useState("STANDARD");
   const [regionCenter, setRegionCenter] = useState(null);
   const [regionLookupStatus, setRegionLookupStatus] = useState("idle");
-  const [mapLayers, setMapLayers] = useState({ findings: true, clusters: true, hospitals: true });
+  const [mapLayers, setMapLayers] = useState({ findings: true, clusters: true, hospitals: true, fireStations: true });
   const [hospitals, setHospitals] = useState([]);
   const [hospitalStatus, setHospitalStatus] = useState("idle");
+  const [fireStations, setFireStations] = useState([]);
+  const [fireStationStatus, setFireStationStatus] = useState("idle");
+  const [routeIncident, setRouteIncident] = useState(null);
+  const [routeOrigin, setRouteOrigin] = useState(null);
+  const [routeOptions, setRouteOptions] = useState([]);
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
+  const [routeStatus, setRouteStatus] = useState("idle");
+  const [routeError, setRouteError] = useState("");
+  const [routeWarnings, setRouteWarnings] = useState([]);
+  const [originMode, setOriginMode] = useState(null);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [locationSearchStatus, setLocationSearchStatus] = useState("idle");
 
   const standardTileUrl = CARTO_BASEMAP_KEY
     ? `https://{s}.basemaps.cartocdn.com/${isDarkMode ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(CARTO_BASEMAP_KEY)}`
@@ -368,6 +445,52 @@ export default function DisasterMap() {
       .catch((error) => { if (error.name !== "AbortError") { console.warn("Hospital layer request failed", error); setHospitals([]); setHospitalStatus("failed"); } });
     return () => controller.abort();
   }, [regionCenter]);
+
+  useEffect(() => {
+    if (!regionCenter) { setFireStations([]); setFireStationStatus("idle"); return; }
+    let active = true;
+    setFireStations([]);
+    setFireStationStatus("loading");
+    getNearbyFireStations(regionCenter[0], regionCenter[1])
+      .then((response) => {
+        if (!active) return;
+        const stations = response?.data?.stations ?? [];
+        setFireStations(stations);
+        setFireStationStatus(stations.length > 0 ? "ready" : "empty");
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.warn("Fire-station layer request failed", error);
+        setFireStations([]);
+        setFireStationStatus("failed");
+      });
+    return () => { active = false; };
+  }, [regionCenter]);
+
+  useEffect(() => {
+    if (originMode !== "CUSTOM" || locationQuery.trim().length < 2 || !routeIncident) {
+      setLocationSuggestions([]);
+      setLocationSearchStatus("idle");
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setLocationSearchStatus("loading");
+      autocompleteRouteLocation(locationQuery.trim(), routeIncident)
+        .then((response) => {
+          if (!active) return;
+          setLocationSuggestions(response?.data?.locations ?? []);
+          setLocationSearchStatus("ready");
+        })
+        .catch((error) => {
+          if (!active) return;
+          setLocationSuggestions([]);
+          setLocationSearchStatus("failed");
+          setRouteError(error.message);
+        });
+    }, 400);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [locationQuery, originMode, routeIncident]);
 
 
   /*
@@ -951,6 +1074,82 @@ const loadFusionRecommendations =
         geolocatedFindings,
       ]
     );
+
+  const selectedRoute = useMemo(
+    () => routeOptions.find((route) => route.id === selectedRouteId) ?? routeOptions[0] ?? null,
+    [routeOptions, selectedRouteId]
+  );
+
+  function clearRoute() {
+    setRouteIncident(null);
+    setRouteOrigin(null);
+    setRouteOptions([]);
+    setSelectedRouteId(null);
+    setRouteStatus("idle");
+    setRouteError("");
+    setRouteWarnings([]);
+    setOriginMode(null);
+    setLocationQuery("");
+    setLocationSuggestions([]);
+  }
+
+  function openRoutePlanner(incident) {
+    if (!Number.isFinite(Number(incident?.latitude)) || !Number.isFinite(Number(incident?.longitude))) {
+      setRouteError("Route unavailable — this incident does not have a mapped location.");
+      return;
+    }
+    clearRoute();
+    setRouteIncident({ ...incident, latitude: Number(incident.latitude), longitude: Number(incident.longitude) });
+  }
+
+  function routeHazardWarnings(route) {
+    if (!route?.geometry?.coordinates) return [];
+    const nearby = findings.filter((finding) => finding.type === "ROAD_BLOCKAGE" && finding.location?.latitude != null && finding.location?.longitude != null)
+      .filter((finding) => route.geometry.coordinates.some(([longitude, latitude]) => distanceKm(
+        { latitude, longitude },
+        { latitude: Number(finding.location.latitude), longitude: Number(finding.location.longitude) }
+      ) <= 0.75));
+    const verified = nearby.filter((finding) => ["CONFIRMED", "CORRECTED"].includes(finding.verificationStatus));
+    const pending = nearby.filter((finding) => finding.verificationStatus === "PENDING");
+    return [
+      ...(verified.length ? ["Verified road blockage reported near this route."] : []),
+      ...(pending.length ? ["Possible road obstruction reported near this route."] : []),
+    ];
+  }
+
+  async function requestRoute(origin) {
+    if (!routeIncident) return;
+    try {
+      setRouteOrigin(origin);
+      setRouteStatus("loading");
+      setRouteError("");
+      setRouteOptions([]);
+      const response = await calculateEmergencyRoutes(origin, routeIncident);
+      const routes = response?.data?.routes ?? [];
+      if (!routes.length) throw new Error("No drivable route was found between these locations.");
+      setRouteOptions(routes);
+      setSelectedRouteId(routes[0].id);
+      setRouteWarnings([...(response?.data?.warnings ?? []), ...routeHazardWarnings(routes[0])]);
+      setRouteStatus("ready");
+    } catch (error) {
+      setRouteStatus("failed");
+      setRouteError(error.message || "Route could not be calculated right now. Please try again.");
+    }
+  }
+
+  function chooseNearestFacility(facilities, emptyMessage, mode) {
+    setOriginMode(mode);
+    if (!routeIncident || !facilities.length) {
+      setRouteError(emptyMessage);
+      return;
+    }
+    const nearest = [...facilities].sort((first, second) => distanceKm(first, routeIncident) - distanceKm(second, routeIncident))[0];
+    void requestRoute({ name: nearest.name, latitude: nearest.latitude, longitude: nearest.longitude });
+  }
+
+  useEffect(() => {
+    clearRoute();
+  }, [currentDisaster?.id]);
 
   function handleLocationSelected({
     latitude,
@@ -1943,9 +2142,23 @@ const loadFusionRecommendations =
               </label>
             ))}
           </fieldset>
-          {[['findings', 'Findings'], ['clusters', 'Evidence Clusters'], ['hospitals', 'Hospitals']].map(([key, label]) => <label key={key} className="flex cursor-pointer items-center justify-between gap-3 py-1.5 text-xs"><span>{label}</span><input type="checkbox" checked={mapLayers[key]} onChange={() => setMapLayers((current) => ({ ...current, [key]: !current[key] }))} className="h-4 w-4 accent-orange-600" /></label>)}
+          {[['findings', 'Findings'], ['clusters', 'Evidence Clusters'], ['hospitals', 'Hospitals'], ['fireStations', 'Fire Stations']].map(([key, label]) => <label key={key} className="flex cursor-pointer items-center justify-between gap-3 py-1.5 text-xs"><span>{label}</span><input type="checkbox" checked={mapLayers[key]} onChange={() => setMapLayers((current) => ({ ...current, [key]: !current[key] }))} className="h-4 w-4 accent-orange-600" /></label>)}
           <p className="mt-2 border-t border-[var(--border-color)] pt-2 text-[9px] text-[var(--text-muted)]">{hospitalStatus === "loading" ? "Loading healthcare data…" : hospitalStatus === "failed" ? "Hospital data unavailable" : `${hospitals.length} mapped facilities`}</p>
+          <p className="mt-1 text-[9px] text-[var(--text-muted)]">{fireStationStatus === "loading" ? "Loading fire stations…" : fireStationStatus === "failed" ? "Fire-station data unavailable" : fireStationStatus === "empty" ? "No nearby fire stations mapped" : `${fireStations.length} fire stations`}</p>
         </div>
+
+        {routeIncident && (
+          <aside className="absolute left-4 top-4 z-[1200] max-h-[600px] w-[min(370px,calc(100%-2rem))] overflow-y-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 text-[var(--text-primary)] shadow-2xl">
+            <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><Route className="h-5 w-5 text-orange-500" /><h3 className="font-black">Emergency Access Route</h3></div><p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">To</p><p className="mt-1 text-sm font-semibold">{routeIncident.name}</p></div><button type="button" onClick={clearRoute} className="rounded-lg border border-[var(--border-color)] p-2"><X className="h-4 w-4" /></button></div>
+            <div className="mt-4"><p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Start From</p><div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3"><button type="button" onClick={() => chooseNearestFacility(fireStations, "No nearby fire stations were found.", "FIRE")} className={`rounded-lg border px-2 py-2 text-[10px] font-bold ${originMode === "FIRE" ? "border-orange-500 bg-orange-500/10 text-orange-500" : "border-[var(--border-color)]"}`}>Nearest Fire Station</button><button type="button" onClick={() => chooseNearestFacility(hospitals, "No nearby hospitals were found.", "HOSPITAL")} className={`rounded-lg border px-2 py-2 text-[10px] font-bold ${originMode === "HOSPITAL" ? "border-orange-500 bg-orange-500/10 text-orange-500" : "border-[var(--border-color)]"}`}>Nearest Hospital</button><button type="button" onClick={() => { setOriginMode("CUSTOM"); setRouteError(""); }} className={`rounded-lg border px-2 py-2 text-[10px] font-bold ${originMode === "CUSTOM" ? "border-orange-500 bg-orange-500/10 text-orange-500" : "border-[var(--border-color)]"}`}>Choose Location</button></div></div>
+            {originMode === "CUSTOM" && <div className="relative mt-3"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[var(--text-muted)]" /><input value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="Search responder starting location" className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-main)] py-2.5 pl-9 pr-3 text-xs outline-none focus:border-orange-500" />{locationQuery.trim().length >= 2 && <div className="mt-1 overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg">{locationSearchStatus === "loading" ? <p className="p-3 text-xs text-[var(--text-muted)]">Searching locations…</p> : locationSuggestions.length ? locationSuggestions.map((location) => <button key={location.id} type="button" onClick={() => { setLocationQuery(location.label); setLocationSuggestions([]); void requestRoute(location); }} className="block w-full border-b border-[var(--border-color)] px-3 py-2 text-left last:border-0 hover:bg-[var(--bg-card-hover)]"><span className="block text-xs font-bold">{location.name}</span><span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">{location.label}</span></button>) : locationSearchStatus === "ready" ? <p className="p-3 text-xs text-[var(--text-muted)]">No matching locations found.</p> : null}</div>}</div>}
+            {routeStatus === "loading" && <div className="mt-4 flex items-center gap-2 rounded-lg border border-orange-500/20 bg-orange-500/10 p-3 text-xs text-orange-500"><RefreshCw className="h-4 w-4 animate-spin" />Calculating real driving routes…</div>}
+            {routeError && <div className="mt-4 rounded-lg border border-red-500/25 bg-red-500/10 p-3 text-xs text-red-500">{routeError}</div>}
+            {routeOrigin && routeOptions.length > 0 && <div className="mt-4"><p className="text-xs text-[var(--text-secondary)]"><strong>{routeOrigin.name}</strong><span className="mx-2">→</span><strong>{routeIncident.name}</strong></p><div className="mt-3 space-y-2">{routeOptions.map((route, index) => { const active = route.id === selectedRoute?.id; return <button key={route.id} type="button" onClick={() => { setSelectedRouteId(route.id); setRouteWarnings(["Hazard avoidance data is limited for this area.", ...routeHazardWarnings(route)]); }} className={`w-full rounded-lg border p-3 text-left ${active ? "border-cyan-500 bg-cyan-500/10" : "border-[var(--border-color)] hover:bg-[var(--bg-card-hover)]"}`}><div className="flex items-center justify-between"><span className={`text-[10px] font-black uppercase tracking-wider ${active ? "text-cyan-500" : "text-slate-500"}`}>{index === 0 ? "Recommended" : "Alternative"}</span>{active && <CheckCircle2 className="h-4 w-4 text-cyan-500" />}</div><p className="mt-1 text-sm font-bold">{formatRouteDuration(route.durationSeconds)} · {formatRouteDistance(route.distanceMeters)}</p></button>; })}</div></div>}
+            {routeWarnings.length > 0 && <div className="mt-4 space-y-1">{[...new Set(routeWarnings)].map((warning) => <p key={warning} className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-2 text-[10px] text-[var(--text-secondary)]"><TriangleAlert className="mr-1 inline h-3 w-3 text-amber-500" />{warning}</p>)}</div>}
+            <div className="mt-4 flex items-center justify-between border-t border-[var(--border-color)] pt-3"><p className="text-[10px] text-[var(--text-muted)]">Responder verification required.</p><button type="button" onClick={clearRoute} className="text-xs font-bold text-red-500">Clear Route</button></div>
+          </aside>
+        )}
 
 
         {!currentDisaster && (
@@ -2040,6 +2253,21 @@ const loadFusionRecommendations =
               />
             </Pane>
           )}
+
+          <Pane name="emergency-route-alternatives" style={{ zIndex: 330 }}>
+            {routeOptions.filter((route) => route.id !== selectedRoute?.id).map((route) => <Polyline key={route.id} positions={route.geometry.coordinates.map(([longitude, latitude]) => [latitude, longitude])} pathOptions={{ color: "#64748b", weight: 4, opacity: 0.52 }} eventHandlers={{ click: () => { setSelectedRouteId(route.id); setRouteWarnings(["Hazard avoidance data is limited for this area.", ...routeHazardWarnings(route)]); } }} />)}
+          </Pane>
+          <Pane name="emergency-route-selected" style={{ zIndex: 360 }}>
+            {selectedRoute && <Polyline positions={selectedRoute.geometry.coordinates.map(([longitude, latitude]) => [latitude, longitude])} pathOptions={{ color: "#0f172a", weight: 10, opacity: 0.68, lineCap: "round", lineJoin: "round" }} />}
+            {selectedRoute && <Polyline positions={selectedRoute.geometry.coordinates.map(([longitude, latitude]) => [latitude, longitude])} pathOptions={{ color: "#22d3ee", weight: 6, opacity: 1, lineCap: "round", lineJoin: "round" }} />}
+            {selectedRoute?.geometry?.coordinates?.length > 0 && <CircleMarker center={[selectedRoute.geometry.coordinates[0][1], selectedRoute.geometry.coordinates[0][0]]} radius={5} pathOptions={{ color: "#ffffff", fillColor: "#22d3ee", fillOpacity: 1, weight: 2 }} interactive={false} />}
+            {selectedRoute?.geometry?.coordinates?.length > 0 && <CircleMarker center={[selectedRoute.geometry.coordinates.at(-1)[1], selectedRoute.geometry.coordinates.at(-1)[0]]} radius={5} pathOptions={{ color: "#ffffff", fillColor: "#dc2626", fillOpacity: 1, weight: 2 }} interactive={false} />}
+          </Pane>
+
+          {routeOrigin && <Marker position={[routeOrigin.latitude, routeOrigin.longitude]} icon={ROUTE_START_ICON}><Popup><div className="route-endpoint-popup text-slate-900"><strong>Route Start</strong><p className="text-xs text-slate-600">{routeOrigin.name}</p></div></Popup></Marker>}
+          {routeIncident && <Marker position={[routeIncident.latitude, routeIncident.longitude]} icon={ROUTE_INCIDENT_ICON}><Popup><div className="route-endpoint-popup text-slate-900"><strong>Destination Incident</strong><p className="text-xs text-slate-600">{routeIncident.name}</p></div></Popup></Marker>}
+
+          <RouteFitController route={selectedRoute} origin={routeOrigin} destination={routeIncident} />
 
 
           <MapBoundsController
@@ -2346,6 +2574,8 @@ const loadFusionRecommendations =
                         Inspect Evidence Cluster
                       </button>
 
+                      <button type="button" onClick={(event) => { event.stopPropagation(); openRoutePlanner({ name: `Evidence Cluster (${cluster.highestSeverity ?? "Incident"})`, latitude, longitude }); }} className="mt-2 w-full rounded-lg border border-orange-600 bg-orange-600 px-3 py-2 text-xs font-bold text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1">Plan Emergency Access Route</button>
+
                     </Popup>
 
                   </CircleMarker>
@@ -2413,7 +2643,7 @@ const loadFusionRecommendations =
                     }
                   >
 
-                    <div className="space-y-3 text-slate-900">
+                    <div className="evidence-finding-popup space-y-3 text-slate-900">
                     
 
                       <div className="flex items-center justify-between gap-2">
@@ -2589,6 +2819,7 @@ const loadFusionRecommendations =
                       View Evidence Intelligence
 
                     </button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); openRoutePlanner({ name: finding.title ?? prettyType(finding.type), latitude, longitude, findingId: finding.id }); }} className="mt-2 w-full rounded-lg border border-orange-600 bg-orange-600 px-3 py-2 text-xs font-bold text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1">Plan Emergency Access Route</button>
                   </Popup>
 
                 </CircleMarker>
@@ -2598,7 +2829,7 @@ const loadFusionRecommendations =
           )}
 
           {mapLayers.hospitals && hospitals.map((hospital) => (
-            <CircleMarker key={hospital.id} center={[hospital.latitude, hospital.longitude]} radius={10} pathOptions={{ color: "#ffffff", fillColor: "#e11d48", fillOpacity: 1, weight: 2 }}>
+            <CircleMarker key={hospital.id} center={[hospital.latitude, hospital.longitude]} radius={10} pathOptions={{ className: "hospital-map-marker", color: "#e11d48", fillColor: "#ffffff", fillOpacity: 1, weight: 2.5 }}>
               <Tooltip permanent direction="center" className="hospital-marker-symbol">+</Tooltip>
               <Popup minWidth={250}>
                 <div className="hospital-popup space-y-3 text-slate-900">
@@ -2610,6 +2841,15 @@ const loadFusionRecommendations =
                 </div>
               </Popup>
             </CircleMarker>
+          ))}
+
+          {mapLayers.fireStations && fireStations.map((station) => (
+            <Marker key={station.id} position={[station.latitude, station.longitude]} icon={FIRE_STATION_ICON}>
+              <Popup minWidth={250}>
+                <div className="fire-station-popup space-y-3 text-slate-900"><div className="flex items-start gap-2"><span className="rounded-lg bg-red-600 p-2 text-white"><Flame className="h-4 w-4" /></span><div><p className="text-xs text-slate-500">Fire Station</p><h4 className="font-bold">{station.name}</h4></div></div>{station.address && <p className="text-xs text-slate-600"><strong>Address:</strong> {station.address}</p>}{station.operator && <p className="text-xs text-slate-600"><strong>Operator:</strong> {station.operator}</p>}<p className="text-[10px] text-slate-500">Mapped OpenStreetMap fire-station data; coverage may be incomplete.</p></div>
+                {routeIncident && <button type="button" onClick={() => { setOriginMode("FIRE"); void requestRoute({ name: station.name, latitude: station.latitude, longitude: station.longitude }); }} className="mt-3 w-full rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white">Use as Route Start</button>}
+              </Popup>
+            </Marker>
           ))}
 
         </MapContainer>

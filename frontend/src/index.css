@@ -191,10 +191,28 @@ html.dark .leaflet-popup-tip {
   background: var(--bg-main) !important;
 }
 
+html.dark .evidence-cluster-popup,
 html.dark .evidence-cluster-popup .text-slate-900,
-html.dark .evidence-cluster-popup .text-slate-600,
-html.dark .evidence-cluster-popup .text-slate-500 {
+html.dark .evidence-finding-popup,
+html.dark .evidence-finding-popup .text-slate-900 {
   color: var(--text-primary) !important;
+}
+
+html.dark .evidence-cluster-popup .text-slate-600,
+html.dark .evidence-cluster-popup .text-slate-500,
+html.dark .evidence-finding-popup .text-slate-600,
+html.dark .evidence-finding-popup .text-slate-500 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .evidence-finding-popup .bg-slate-100 {
+  background: var(--bg-card-hover) !important;
+}
+
+html.dark .evidence-finding-popup .border-orange-200 {
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  background: rgba(249, 115, 22, 0.12) !important;
+  color: #fdba74 !important;
 }
 
 html.dark .evidence-cluster-popup-title {
@@ -206,6 +224,25 @@ html.dark .hospital-popup .text-slate-900,
 html.dark .hospital-popup .text-slate-600,
 html.dark .hospital-popup .text-slate-500 {
   color: var(--text-primary) !important;
+}
+
+html.dark .fire-station-popup,
+html.dark .fire-station-popup .text-slate-900 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .fire-station-popup .text-slate-600,
+html.dark .fire-station-popup .text-slate-500 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .route-endpoint-popup,
+html.dark .route-endpoint-popup .text-slate-900 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .route-endpoint-popup .text-slate-600 {
+  color: var(--text-secondary) !important;
 }
 
 .human-decision-confirm {
@@ -429,7 +466,7 @@ html.dark .evidence-cluster-popup .bg-slate-100 {
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  color: #fff !important;
+  color: #e11d48 !important;
   font-size: 15px !important;
   font-weight: 900 !important;
   line-height: 1 !important;
@@ -437,6 +474,119 @@ html.dark .evidence-cluster-popup .bg-slate-100 {
 
 .hospital-marker-symbol::before {
   display: none !important;
+}
+
+.hospital-map-marker {
+  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.38));
+}
+
+.satellite-image-panel {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.satellite-image-panel--analyzed {
+  box-shadow: 0 10px 28px rgba(6, 182, 212, 0.12);
+}
+
+.satellite-image-stage {
+  position: relative;
+  overflow: hidden;
+  background: #020617;
+}
+
+.satellite-image-stage--analyzed::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.1), transparent 42%, rgba(6, 182, 212, 0.06));
+  content: "";
+  pointer-events: none;
+}
+
+.satellite-image-stage--analyzed .satellite-analysis-image {
+  filter: saturate(1.55) contrast(1.16) brightness(0.96);
+}
+
+html.dark .satellite-image-panel {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+html.dark .satellite-image-panel--analyzed {
+  box-shadow: 0 10px 30px rgba(6, 182, 212, 0.16);
+}
+
+.emergency-map-marker-wrapper {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.emergency-map-marker {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50% 50% 50% 12%;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.48);
+  transform: rotate(-45deg);
+}
+
+.emergency-map-marker--fire,
+.emergency-map-marker--incident {
+  background: #dc2626;
+}
+
+.emergency-map-marker--start {
+  background: #0891b2;
+}
+
+.emergency-map-marker__symbol {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  transform: rotate(45deg);
+}
+
+.emergency-map-marker__symbol svg {
+  width: 19px;
+  height: 19px;
+  fill: #fff;
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.emergency-map-marker__symbol .emergency-map-marker__cutout {
+  fill: none;
+  stroke: #dc2626;
+  stroke-width: 2.2;
+}
+
+.emergency-map-marker__label {
+  position: absolute;
+  top: -21px;
+  left: 50%;
+  padding: 3px 7px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.3);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.emergency-map-marker__label--start {
+  background: #0e7490;
+}
+
+.emergency-map-marker__label--incident {
+  background: #b91c1c;
 }
 
 /* Keep Leaflet panes and controls inside the page's isolated map section. */

@@ -310,7 +310,7 @@ export default function AIAnalysisModal({
                 <div className="mt-4 space-y-2">{evidence.filter(Boolean).map((item, index) => <div key={`${item}-${index}`} className="flex items-start gap-2 text-xs leading-5 text-[var(--text-secondary)]"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span>{item}</span></div>)}</div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {isComparison ? <><SimpleMetric label="Area Changed" value={`${formatNumber(satellite.areaChanged)}%`} /><SimpleMetric label="Water Increase" value={waterIncrease} /></> : <SimpleMetric label="Visible Water" value={waterValue} />}
               <SimpleMetric label={isComparison || isFallback || satellite.impactCue ? "Impact Level" : "Flood Concern"} value={impactLevel} />
               <SimpleMetric label="AI Confidence" value={satellite.aiConfidence ?? "Unknown"} />
@@ -321,7 +321,7 @@ export default function AIAnalysisModal({
               <div className={`grid grid-cols-1 gap-4 ${(isComparison || isFallback) ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
                 {(isComparison || isFallback) && <ImagePanel label="Before" url={beforeImageUrl} alt="Before satellite image" />}
                 <ImagePanel label={(isComparison || isFallback) ? "After" : "Original"} url={originalImageUrl} alt="Satellite image" />
-                <ImagePanel label={isComparison ? "Change View" : satellite.impactCue ? "Impact View" : "Visible Water"} url={overlayImageUrl} alt="Satellite analysis result" />
+                <ImagePanel label={isComparison ? "Change View" : "Impact Segmentation"} url={overlayImageUrl} alt="Satellite analysis result" analyzed />
               </div>
             </div>
             <p className="text-xs text-[var(--text-muted)]">Suggested Priority is advisory. Satellite AI findings remain pending until responder verification.</p>
@@ -1371,8 +1371,8 @@ export default function AIAnalysisModal({
   );
 }
 
-function ImagePanel({ label, url, alt }) {
-  return <div className="overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)]"><p className="border-b border-[var(--border-color)] px-4 py-3 text-xs font-bold text-[var(--text-primary)]">{label}</p>{url ? <img src={url} alt={alt} className="h-[320px] w-full bg-black object-contain" /> : <div className="flex h-[320px] items-center justify-center text-sm text-[var(--text-muted)]">Visualization unavailable</div>}</div>;
+function ImagePanel({ label, url, alt, analyzed = false }) {
+  return <div className={`satellite-image-panel overflow-hidden rounded-xl border bg-[var(--bg-main)] ${analyzed ? "satellite-image-panel--analyzed border-cyan-500/40" : "border-[var(--border-color)]"}`}><div className="flex items-center justify-between gap-3 border-b border-[var(--border-color)] px-4 py-3"><p className="text-xs font-bold text-[var(--text-primary)]">{label}</p>{analyzed && <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[9px] font-extrabold uppercase tracking-widest text-cyan-500">AI Processed</span>}</div>{url ? <div className={`satellite-image-stage ${analyzed ? "satellite-image-stage--analyzed" : ""}`}><img src={url} alt={alt} className="satellite-analysis-image aspect-video w-full object-contain" /></div> : <div className="flex aspect-video items-center justify-center text-sm text-[var(--text-muted)]">Visualization unavailable</div>}</div>;
 }
 
 function SimpleMetric({ label, value }) {
