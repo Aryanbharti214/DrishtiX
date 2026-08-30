@@ -261,6 +261,7 @@ export const aiAnalysisResponseSchema =
       z.enum([
         "GENERIC_OBJECT_DETECTION",
         "DISASTER_DAMAGE_ASSESSMENT",
+        "SATELLITE_ASSESSMENT",
       ]),
 
     model:
@@ -304,6 +305,10 @@ export const aiAnalysisResponseSchema =
         segmentationFindingSchema
       )
         .default([]),
+
+    satelliteAnalysis:
+      z.record(z.string(), z.unknown())
+        .optional(),
   });
 
 

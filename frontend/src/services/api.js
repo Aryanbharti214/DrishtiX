@@ -371,7 +371,8 @@ export async function deleteDisasters(
 
 
 export async function analyzeImagery(
-  imageryId
+  imageryId,
+  options = {}
 ) {
 
   return apiRequest(
@@ -379,6 +380,10 @@ export async function analyzeImagery(
     {
       method:
         "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(options),
     }
   );
 }

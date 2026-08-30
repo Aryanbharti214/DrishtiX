@@ -6,6 +6,7 @@ import FormData from "form-data";
 import {
   env,
 } from "../../config/env.js";
+import type { ImagerySourceType } from "../../modules/imagery/imagery.types.js";
 
 
 const aiClient =
@@ -35,6 +36,16 @@ interface AnalyzeImageInput {
   filename: string;
 
   mimeType: string;
+
+  sourceType: ImagerySourceType;
+
+  analysisMode?: "SINGLE_IMAGE" | "BEFORE_AFTER";
+
+  beforeImagePath?: string;
+
+  beforeFilename?: string;
+
+  beforeMimeType?: string;
 }
 
 
@@ -67,8 +78,31 @@ export async function analyzeImageWithAI(
   );
 
 
-  const response =
-    await aiClient.post(
+  form.append(
+    "sourceType",
+    input.sourceType
+  );
+
+  form.append(
+    "analysisMode",
+    input.analysisMode ?? "SINGLE_IMAGE"
+  );
+
+  if (input.beforeImagePath) {
+    form.append(
+      "beforeImage",
+      fs.createReadStream(input.beforeImagePath),
+      {
+        filename: input.beforeFilename ?? "before.jpg",
+        contentType: input.beforeMimeType ?? "image/jpeg",
+      }
+    );
+  }
+
+
+  try {
+    const response =
+      await aiClient.post(
       "/api/v1/analyze",
       form,
       {
@@ -85,10 +119,23 @@ export async function analyzeImageWithAI(
         maxContentLength:
           Infinity,
       }
-    );
+      );
 
-
-  return response.data;
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === "string" && detail.trim()) {
+        throw new Error(detail);
+      }
+      if (error.response && error.response.status >= 500) {
+        throw new Error(
+          "Satellite analysis could not be completed. Please try again."
+        );
+      }
+    }
+    throw error;
+  }
 }
 
 

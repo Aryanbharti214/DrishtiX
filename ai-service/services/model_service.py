@@ -92,6 +92,12 @@ def convert_segmentation_to_findings(result):
 
     total_pixels = semantic_mask.size
 
+    # This exported semantic result contains hard class labels, not model
+    # probabilities. Local class agreement is therefore used as a transparent
+    # segmentation-quality measure: stable interior pixels score higher than
+    # fragmented/noisy boundaries. It is distinct from affected-area coverage.
+    import cv2
+
     findings = []
 
     for class_id, class_name in CLASS_NAMES.items():
@@ -102,6 +108,16 @@ def convert_segmentation_to_findings(result):
 
         if pixel_count == 0:
             continue
+
+        class_mask = (semantic_mask == class_id).astype(np.float32)
+        neighborhood_agreement = cv2.boxFilter(
+            class_mask,
+            ddepth=-1,
+            ksize=(5, 5),
+            normalize=True,
+            borderType=cv2.BORDER_REFLECT,
+        )
+        confidence = float(np.mean(neighborhood_agreement[class_mask > 0]))
 
         area_percentage = (
             pixel_count / total_pixels
@@ -150,6 +166,7 @@ def convert_segmentation_to_findings(result):
                     2,
                 ),
                 "bbox": bbox,
+                "confidence": round(confidence, 4),
                 "prediction": {
                     "class_id": class_id,
                     "class_name": class_name,

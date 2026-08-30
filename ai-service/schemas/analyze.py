@@ -138,7 +138,8 @@ class AnalyzeResponse(BaseModel):
     )
 
     analysis_type: Literal[
-        "DISASTER_DAMAGE_ASSESSMENT"
+        "DISASTER_DAMAGE_ASSESSMENT",
+        "SATELLITE_ASSESSMENT",
     ] = Field(
         alias="analysisType"
     )
@@ -169,4 +170,9 @@ class AnalyzeResponse(BaseModel):
     ] = Field(
         alias="segmentationSummary",
         default_factory=list,
+    )
+
+    satellite_analysis: dict[str, Any] | None = Field(
+        alias="satelliteAnalysis",
+        default=None,
     )

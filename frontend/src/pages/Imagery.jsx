@@ -59,6 +59,7 @@ export default function Imagery() {
 
   const fileInputRef =
     useRef(null);
+  const beforeFileInputRef = useRef(null);
 
 
   /*
@@ -81,6 +82,11 @@ export default function Imagery() {
     sourceType,
     setSourceType,
   ] = useState("DRONE");
+
+  const [analysisMode, setAnalysisMode] = useState("SINGLE_IMAGE");
+  const [beforeFile, setBeforeFile] = useState(null);
+  const [beforePreviewUrl, setBeforePreviewUrl] = useState("");
+  const [localRemoval, setLocalRemoval] = useState(null);
 
   const [
     latitude,
@@ -209,6 +215,39 @@ export default function Imagery() {
       );
     };
   }, [selectedFile]);
+
+  useEffect(() => {
+    if (!beforeFile) {
+      setBeforePreviewUrl("");
+      return;
+    }
+    const objectUrl = URL.createObjectURL(beforeFile);
+    setBeforePreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [beforeFile]);
+
+  function validateSelectedFile(file) {
+    if (!ALLOWED_TYPES.has(file.type)) {
+      setError("Only JPEG, PNG and WebP images are allowed.");
+      return false;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setError("Image size must not exceed 20MB.");
+      return false;
+    }
+    return true;
+  }
+
+  function handleBeforeFileChange(event) {
+    setError("");
+    const file = event.target.files?.[0];
+    if (!file || !validateSelectedFile(file)) {
+      setBeforeFile(null);
+      event.target.value = "";
+      return;
+    }
+    setBeforeFile(file);
+  }
 
 
   /*
@@ -371,6 +410,11 @@ export default function Imagery() {
       return;
     }
 
+    if (sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER" && !beforeFile) {
+      setError("Please select both Before and After images.");
+      return;
+    }
+
 
     try {
       setUploading(true);
@@ -435,6 +479,18 @@ export default function Imagery() {
       }
 
 
+      let beforeImagery = null;
+
+      if (sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER") {
+        const beforeData = new FormData();
+        beforeData.append("image", beforeFile);
+        beforeData.append("disasterId", currentDisaster.id);
+        beforeData.append("sourceType", "SATELLITE");
+        const beforeResponse = await uploadImagery(beforeData);
+        beforeImagery = beforeResponse?.data?.imagery;
+        if (!beforeImagery) throw new Error("Backend did not return the Before image.");
+      }
+
       const response =
         await uploadImagery(
           formData
@@ -457,17 +513,37 @@ export default function Imagery() {
        * instead of performing another GET.
        */
 
+      let completedImagery = createdImagery;
+      let completedAnalysis = null;
+
+      if (beforeImagery) {
+        const analysisResponse = await analyzeImagery(createdImagery.id, {
+          analysisMode: "BEFORE_AFTER",
+          beforeImageryId: beforeImagery.id,
+        });
+        completedImagery = {
+          ...(analysisResponse?.data?.imagery ?? createdImagery),
+          isComparisonJob: true,
+        };
+        completedAnalysis = analysisResponse?.data?.analysis ?? null;
+      }
+
       setImagery(
         (previous) => [
-          createdImagery,
+          completedImagery,
           ...previous,
         ]
       );
 
 
-      setSuccessMessage(
-        `${createdImagery.originalFilename} uploaded successfully. You can now run AI analysis.`
-      );
+      setSuccessMessage(beforeImagery
+        ? "Before & After analysis completed. The result is ready to review."
+        : `${createdImagery.originalFilename} uploaded successfully. You can now run AI analysis.`);
+
+      if (completedAnalysis) {
+        setSelectedAnalysisImagery(completedImagery);
+        setSelectedAnalysis({ analysis: completedAnalysis });
+      }
 
 
       /*
@@ -475,7 +551,9 @@ export default function Imagery() {
        */
 
       setSelectedFile(null);
+      setBeforeFile(null);
       setSourceType("DRONE");
+      setAnalysisMode("SINGLE_IMAGE");
       setLatitude("");
       setLongitude("");
       setCapturedAt("");
@@ -487,6 +565,8 @@ export default function Imagery() {
         fileInputRef.current.value =
           "";
       }
+
+      if (beforeFileInputRef.current) beforeFileInputRef.current.value = "";
 
     } catch (err) {
 
@@ -1062,7 +1142,7 @@ export default function Imagery() {
           <div>
 
             <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2">
-              Image *
+              {sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER" ? "After *" : "Image *"}
             </label>
 
 
@@ -1088,7 +1168,7 @@ export default function Imagery() {
 
 
                 <p className="text-sm font-semibold text-[var(--text-primary)] mt-3">
-                  Select image
+                  {selectedFile ? "Replace" : sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER" ? "Upload After" : "Select image"}
                 </p>
 
 
@@ -1128,7 +1208,7 @@ export default function Imagery() {
 
                 <button
                   type="button"
-                  onClick={clearSelectedFile}
+                  onClick={() => setLocalRemoval("AFTER")}
                   disabled={uploading}
                   aria-label="Remove selected image"
                   title="Remove selected image"
@@ -1191,6 +1271,41 @@ export default function Imagery() {
             </select>
 
           </div>
+
+          {sourceType === "SATELLITE" && (
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2">Analysis Mode</label>
+              <select value={analysisMode} onChange={(event) => setAnalysisMode(event.target.value)} disabled={uploading} className="w-full px-4 py-2.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-primary)] outline-none focus:border-sky-500">
+                <option value="SINGLE_IMAGE">Single Image</option>
+                <option value="BEFORE_AFTER">Before &amp; After</option>
+              </select>
+            </div>
+          )}
+
+          {sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER" && (
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-[var(--text-secondary)]">Before *</label>
+              <label className={`block ${uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
+                <input ref={beforeFileInputRef} type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={handleBeforeFileChange} className="hidden" />
+                {beforePreviewUrl ? (
+                  <img src={beforePreviewUrl} alt="Before image preview" className="h-48 w-full rounded-lg border border-[var(--border-color)] object-cover" />
+                ) : (
+                  <div className="rounded-xl border-2 border-dashed border-[var(--border-color)] p-6 text-center transition-colors hover:border-sky-500">
+                    <Upload className="mx-auto h-8 w-8 text-sky-500" />
+                    <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">Upload Before</p>
+                  </div>
+                )}
+              </label>
+              {beforeFile && <div className="flex items-start justify-between gap-3"><p className="min-w-0 break-all text-xs text-[var(--text-secondary)]">{beforeFile.name}</p><button type="button" onClick={() => setLocalRemoval("BEFORE")} disabled={uploading} className="flex shrink-0 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-[10px] font-bold text-red-500"><X className="h-3.5 w-3.5" />Remove</button></div>}
+            </div>
+          )}
+
+          {sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER" && beforePreviewUrl && previewUrl && (
+            <div className="grid grid-cols-2 gap-3">
+              <div><p className="mb-2 text-xs font-bold text-[var(--text-secondary)]">Before</p><img src={beforePreviewUrl} alt="Before comparison preview" className="h-28 w-full rounded-lg border border-[var(--border-color)] object-cover" /></div>
+              <div><p className="mb-2 text-xs font-bold text-[var(--text-secondary)]">After</p><img src={previewUrl} alt="After comparison preview" className="h-28 w-full rounded-lg border border-[var(--border-color)] object-cover" /></div>
+            </div>
+          )}
 
 
           {/* LATITUDE */}
@@ -1307,7 +1422,8 @@ export default function Imagery() {
             disabled={
               uploading ||
               !currentDisaster ||
-              !selectedFile
+              !selectedFile ||
+              (sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER" && !beforeFile)
             }
             className="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
@@ -1325,8 +1441,8 @@ export default function Imagery() {
 
             {
               uploading
-                ? "Uploading..."
-                : "Upload Imagery"
+                ? sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER" ? "Checking changes" : "Uploading..."
+                : sourceType === "SATELLITE" && analysisMode === "BEFORE_AFTER" ? "Analyze Change" : "Upload Imagery"
             }
 
           </button>
@@ -1490,6 +1606,8 @@ export default function Imagery() {
                                 item.originalFilename
                               }
                             </p>
+
+                            {item.isComparisonJob && <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-violet-500">Before &amp; After comparison</p>}
 
 
                             <p className="text-[11px] text-[var(--text-muted)] mt-1">
@@ -1808,6 +1926,17 @@ export default function Imagery() {
             <p className="mt-3 text-sm text-[var(--text-secondary)]">The selected imagery and associated AI runs, findings, evidence relationships, overlays, and original uploads will be removed. This action cannot be undone.</p>
             <div className="mt-4 max-h-36 space-y-1 overflow-y-auto rounded-lg bg-[var(--bg-main)] p-3 text-xs text-[var(--text-secondary)]">{imagery.filter((item) => selectedIds.has(item.id)).map((item) => <p key={item.id}>{item.originalFilename}</p>)}</div>
             <div className="mt-6 flex justify-end gap-2"><button type="button" disabled={deleting} onClick={() => setConfirmDelete(false)} className="rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-bold">Cancel</button><button type="button" disabled={deleting} onClick={handleDeleteSelected} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50">{deleting ? "Deleting..." : "Delete Selected"}</button></div>
+          </div>
+        </div>
+      )}
+
+      {localRemoval && (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/70 p-4" onMouseDown={(event) => event.target === event.currentTarget && setLocalRemoval(null)}>
+          <div className="theme-card w-full max-w-lg rounded-2xl border border-red-500/35 p-6 shadow-2xl">
+            <p className="text-xs font-bold uppercase tracking-widest text-red-500">Remove image</p>
+            <h3 className="mt-2 text-xl font-black">Remove {localRemoval === "BEFORE" ? "Before" : "After"} image?</h3>
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">This image has not been uploaded yet. Only this local selection will be cleared.</p>
+            <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setLocalRemoval(null)} className="rounded-lg border border-[var(--border-color)] px-4 py-2 text-sm font-bold">Cancel</button><button type="button" onClick={() => { if (localRemoval === "BEFORE") { setBeforeFile(null); if (beforeFileInputRef.current) beforeFileInputRef.current.value = ""; } else { clearSelectedFile(); } setLocalRemoval(null); }} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700">Remove</button></div>
           </div>
         </div>
       )}

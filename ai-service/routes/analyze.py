@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from fastapi import (
@@ -36,12 +37,25 @@ router = APIRouter(
 async def analyze(
     image: UploadFile = File(...),
     imageId: UUID = Form(...),
+    sourceType: Literal[
+        "SATELLITE",
+        "DRONE",
+        "STREET",
+    ] = Form("DRONE"),
+    analysisMode: Literal[
+        "SINGLE_IMAGE",
+        "BEFORE_AFTER",
+    ] = Form("SINGLE_IMAGE"),
+    beforeImage: UploadFile | None = File(None),
 ):
     try:
 
         return await analyze_image(
             image=image,
             image_id=str(imageId),
+            source_type=sourceType,
+            analysis_mode=analysisMode,
+            before_image=beforeImage,
         )
 
     except ValueError as error:

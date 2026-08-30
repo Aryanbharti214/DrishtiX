@@ -12,6 +12,7 @@ import {
   createImageryMetadataSchema,
   bulkDeleteImagerySchema,
   imageryIdSchema,
+  analyzeImageryRequestSchema,
 } from "./imagery.types.js";
 
 import {
@@ -221,10 +222,28 @@ export async function analyzeImageryController(
       return;
     }
 
+    const analysisRequest =
+      analyzeImageryRequestSchema.safeParse(
+        req.body ?? {}
+      );
+
+    if (!analysisRequest.success) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_ANALYSIS_REQUEST",
+          message: "Invalid imagery analysis request",
+          details: analysisRequest.error.flatten(),
+        },
+      });
+      return;
+    }
+
 
     const result =
       await analyzeImageryService(
-        parsed.data
+        parsed.data,
+        analysisRequest.data
       );
 
 

@@ -6,6 +6,9 @@ export const imagerySourceTypes = [
   "STREET",
 ] as const;
 
+export type ImagerySourceType =
+  (typeof imagerySourceTypes)[number];
+
 export const processingStatuses = [
   "UPLOADED",
   "QUEUED",
@@ -42,6 +45,23 @@ export const imageryIdSchema =
 export const bulkDeleteImagerySchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(100),
 });
+
+export const analyzeImageryRequestSchema = z.object({
+  analysisMode: z.enum(["SINGLE_IMAGE", "BEFORE_AFTER"])
+    .default("SINGLE_IMAGE"),
+  beforeImageryId: z.string().uuid().optional(),
+}).superRefine((value, context) => {
+  if (value.analysisMode === "BEFORE_AFTER" && !value.beforeImageryId) {
+    context.addIssue({
+      code: "custom",
+      path: ["beforeImageryId"],
+      message: "A Before image is required",
+    });
+  }
+});
+
+export type AnalyzeImageryRequest =
+  z.infer<typeof analyzeImageryRequestSchema>;
 
 export type CreateImageryMetadataInput =
   z.infer<typeof createImageryMetadataSchema>;

@@ -1,10 +1,11 @@
 import { db } from "../../config/database.js";
+import type { ImagerySourceType } from "./imagery.types.js";
 
 interface ImageryRow {
   id: string;
   disaster_id: string;
 
-  source_type: string;
+  source_type: ImagerySourceType;
 
   original_filename: string;
   stored_filename: string;
@@ -22,11 +23,13 @@ interface ImageryRow {
 
   created_at: Date;
   updated_at: Date;
+
+  is_comparison_job?: boolean;
 }
 
 interface CreateImageryRecord {
   disasterId: string;
-  sourceType: string;
+  sourceType: ImagerySourceType;
 
   originalFilename: string;
   storedFilename: string;
@@ -70,6 +73,9 @@ function mapImagery(row: ImageryRow) {
 
     processingStatus:
       row.processing_status,
+
+    isComparisonJob:
+      row.is_comparison_job ?? false,
 
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -158,10 +164,24 @@ export async function findImageryByDisaster(
   const result =
     await db.query<ImageryRow>(
       `
-        SELECT *
+        SELECT
+          imagery.*,
+          EXISTS (
+            SELECT 1
+            FROM ai_runs comparison_run
+            WHERE comparison_run.imagery_id = imagery.id
+              AND comparison_run.status = 'SUCCEEDED'
+              AND comparison_run.raw_output #>> '{satelliteAnalysis,beforeImageryId}' IS NOT NULL
+          ) AS is_comparison_job
         FROM imagery
-        WHERE disaster_id = $1
-        ORDER BY created_at DESC
+        WHERE imagery.disaster_id = $1
+          AND NOT EXISTS (
+            SELECT 1
+            FROM ai_runs
+            WHERE ai_runs.status = 'SUCCEEDED'
+              AND ai_runs.raw_output #>> '{satelliteAnalysis,beforeImageryId}' = imagery.id::text
+          )
+        ORDER BY imagery.created_at DESC
       `,
       [disasterId]
     );

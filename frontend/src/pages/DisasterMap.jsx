@@ -8,6 +8,7 @@ import React, {
 import {
   CircleMarker,
   MapContainer,
+  Pane,
   Polyline,
   Popup,
   TileLayer,
@@ -61,6 +62,30 @@ const DEFAULT_CENTER = [
   20.2961,
   85.8245,
 ];
+
+const CARTO_BASEMAP_KEY =
+  (import.meta.env.VITE_CARTO_BASEMAP_KEY ?? "").trim();
+
+const OPENSTREETMAP_TILE_URL =
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+const OPENSTREETMAP_ATTRIBUTION =
+  "&copy; OpenStreetMap contributors";
+
+const CARTO_ATTRIBUTION =
+  `${OPENSTREETMAP_ATTRIBUTION} &copy; CARTO`;
+
+const SATELLITE_TILE_URL =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
+const SATELLITE_ATTRIBUTION =
+  "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community";
+
+const SATELLITE_REFERENCE_TILE_URL =
+  "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
+
+const SATELLITE_REFERENCE_ATTRIBUTION =
+  "Reference labels &copy; Esri";
 
 
 const INITIAL_REPORT_FORM = {
@@ -243,11 +268,20 @@ export default function DisasterMap() {
   } = useDisaster();
 
   const { mapPreferences, isDarkMode } = useSettings();
+  const [mapView, setMapView] = useState("STANDARD");
   const [regionCenter, setRegionCenter] = useState(null);
   const [regionLookupStatus, setRegionLookupStatus] = useState("idle");
   const [mapLayers, setMapLayers] = useState({ findings: true, clusters: true, hospitals: true });
   const [hospitals, setHospitals] = useState([]);
   const [hospitalStatus, setHospitalStatus] = useState("idle");
+
+  const standardTileUrl = CARTO_BASEMAP_KEY
+    ? `https://{s}.basemaps.cartocdn.com/${isDarkMode ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(CARTO_BASEMAP_KEY)}`
+    : OPENSTREETMAP_TILE_URL;
+
+  const standardAttribution = CARTO_BASEMAP_KEY
+    ? CARTO_ATTRIBUTION
+    : OPENSTREETMAP_ATTRIBUTION;
 
   useEffect(() => {
     const region = currentDisaster?.regionName?.trim();
@@ -1900,6 +1934,15 @@ const loadFusionRecommendations =
 
         <div className="map-layers-control absolute right-4 bottom-9 z-[1100] w-48 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-3 text-[var(--text-primary)] shadow-xl">
           <div className="mb-2 flex items-center gap-2 text-xs font-black"><Layers3 className="h-4 w-4 text-orange-500" />Map Layers</div>
+          <fieldset className="mb-2 border-b border-[var(--border-color)] pb-2">
+            <legend className="mb-1 text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Map View</legend>
+            {[['STANDARD', 'Standard'], ['SATELLITE', 'Satellite']].map(([value, label]) => (
+              <label key={value} className="flex cursor-pointer items-center justify-between gap-3 py-1 text-xs">
+                <span>{label}</span>
+                <input type="radio" name="map-view" value={value} checked={mapView === value} onChange={() => setMapView(value)} className="h-4 w-4 accent-orange-600" />
+              </label>
+            ))}
+          </fieldset>
           {[['findings', 'Findings'], ['clusters', 'Evidence Clusters'], ['hospitals', 'Hospitals']].map(([key, label]) => <label key={key} className="flex cursor-pointer items-center justify-between gap-3 py-1.5 text-xs"><span>{label}</span><input type="checkbox" checked={mapLayers[key]} onChange={() => setMapLayers((current) => ({ ...current, [key]: !current[key] }))} className="h-4 w-4 accent-orange-600" /></label>)}
           <p className="mt-2 border-t border-[var(--border-color)] pt-2 text-[9px] text-[var(--text-muted)]">{hospitalStatus === "loading" ? "Loading healthcare data…" : hospitalStatus === "failed" ? "Hospital data unavailable" : `${hospitals.length} mapped facilities`}</p>
         </div>
@@ -1985,9 +2028,18 @@ const loadFusionRecommendations =
         >
 
           <TileLayer
-            attribution="&copy; OpenStreetMap contributors &copy; CARTO"
-            url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"}
+            attribution={mapView === "SATELLITE" ? SATELLITE_ATTRIBUTION : standardAttribution}
+            url={mapView === "SATELLITE" ? SATELLITE_TILE_URL : standardTileUrl}
           />
+
+          {mapView === "SATELLITE" && (
+            <Pane name="satellite-reference-labels" style={{ zIndex: 250, pointerEvents: "none" }}>
+              <TileLayer
+                attribution={SATELLITE_REFERENCE_ATTRIBUTION}
+                url={SATELLITE_REFERENCE_TILE_URL}
+              />
+            </Pane>
+          )}
 
 
           <MapBoundsController
