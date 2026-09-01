@@ -37,6 +37,7 @@ import {
 import {
   updateImageryStatus,
 } from "./imagery.repository.js";
+import type { AnalyzeImageryRequest } from "./imagery.types.js";
 
 
 /*
@@ -46,7 +47,10 @@ import {
 */
 
 export async function analyzeImageryService(
-  imageryId: string
+  imageryId: string,
+  request: AnalyzeImageryRequest = {
+    analysisMode: "SINGLE_IMAGE",
+  }
 ) {
 
   /*
@@ -59,6 +63,24 @@ export async function analyzeImageryService(
     await getImageryByIdService(
       imageryId
     );
+
+  let beforeImagery:
+    Awaited<ReturnType<typeof getImageryByIdService>> | undefined;
+
+  if (request.analysisMode === "BEFORE_AFTER") {
+    if (imagery.sourceType !== "SATELLITE") {
+      throw new AppError(400, "INVALID_ANALYSIS_MODE", "Before & After is available only for Satellite imagery");
+    }
+
+    if (request.beforeImageryId === imagery.id) {
+      throw new AppError(400, "INVALID_IMAGE_PAIR", "Before and After must be different imagery records");
+    }
+
+    beforeImagery = await getImageryByIdService(request.beforeImageryId!);
+    if (beforeImagery.sourceType !== "SATELLITE" || beforeImagery.disasterId !== imagery.disasterId) {
+      throw new AppError(400, "INVALID_IMAGE_PAIR", "Before and After must be Satellite images from the same disaster");
+    }
+  }
 
 
   /*
@@ -107,12 +129,20 @@ export async function analyzeImageryService(
       imagery.storedFilename
     );
 
+  const beforeImagePath = beforeImagery
+    ? path.resolve("uploads", beforeImagery.storedFilename)
+    : undefined;
+
 
   try {
 
     await fs.access(
       imagePath
     );
+
+    if (beforeImagePath) {
+      await fs.access(beforeImagePath);
+    }
 
   } catch {
 
@@ -179,6 +209,20 @@ export async function analyzeImageryService(
 
           mimeType:
             imagery.mimeType,
+
+          sourceType:
+            imagery.sourceType,
+
+          analysisMode:
+            request.analysisMode,
+
+          beforeImagePath,
+
+          beforeFilename:
+            beforeImagery?.originalFilename,
+
+          beforeMimeType:
+            beforeImagery?.mimeType,
         });
 
     } catch (error) {
@@ -192,7 +236,7 @@ export async function analyzeImageryService(
       throw new AppError(
         502,
         "AI_SERVICE_ERROR",
-        `AI service request failed: ${message}`
+        message
       );
     }
 
@@ -352,6 +396,15 @@ export async function analyzeImageryService(
 
       resultImage:
         persistedResultImage,
+
+      satelliteAnalysis:
+        result.satelliteAnalysis
+          ? {
+            ...result.satelliteAnalysis,
+            beforeImageryId: beforeImagery?.id,
+            beforeImage: beforeImagery?.imageUrl,
+          }
+          : undefined,
     };
 
 

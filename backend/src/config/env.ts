@@ -85,6 +85,10 @@ const envSchema =
       z.string()
         .min(32),
 
+    ORS_API_KEY:
+      z.string()
+        .default(""),
+
   });
 
 

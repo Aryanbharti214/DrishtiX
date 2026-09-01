@@ -371,7 +371,8 @@ export async function deleteDisasters(
 
 
 export async function analyzeImagery(
-  imageryId
+  imageryId,
+  options = {}
 ) {
 
   return apiRequest(
@@ -379,6 +380,10 @@ export async function analyzeImagery(
     {
       method:
         "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(options),
     }
   );
 }
@@ -642,5 +647,27 @@ export async function getDisasterPriorities(
   return apiRequest(
     `/findings/disaster/${disasterId}/priorities`
   );
+}
+
+export async function getNearbyFireStations(latitude, longitude) {
+  const query = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) });
+  return apiRequest(`/routing/fire-stations?${query.toString()}`);
+}
+
+export async function autocompleteRouteLocation(text, focus) {
+  const query = new URLSearchParams({ text });
+  if (focus?.latitude != null && focus?.longitude != null) {
+    query.set("latitude", String(focus.latitude));
+    query.set("longitude", String(focus.longitude));
+  }
+  return apiRequest(`/routing/autocomplete?${query.toString()}`);
+}
+
+export async function calculateEmergencyRoutes(origin, destination) {
+  return apiRequest("/routing/directions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ origin, destination }),
+  });
 }
 

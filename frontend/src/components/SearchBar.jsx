@@ -8,7 +8,7 @@ export default function SearchBar({ onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState([]);
   const searchRef = useRef(null);
-  const { language } = useSettings();
+  const { isDarkMode, language } = useSettings();
 
   const t = (keyPath) => getTranslation(language, keyPath);
 
@@ -88,7 +88,7 @@ export default function SearchBar({ onNavigate }) {
     <div ref={searchRef} className="relative w-full max-w-md">
       
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${isDarkMode ? "text-slate-400" : "text-slate-700"}`} />
         <input
           type="text"
           value={query}
@@ -98,7 +98,7 @@ export default function SearchBar({ onNavigate }) {
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={t('header.searchPlaceholder')}
-          className="w-full pl-10 pr-10 py-2 bg-slate-800/50 border border-slate-700/60 rounded-lg text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent transition-all dark:bg-slate-800/50 dark:border-slate-700/60 dark:text-slate-100 light:bg-white light:border-slate-200/60 light:text-slate-900 light:placeholder-slate-400"
+          className={`w-full rounded-lg border py-2 pl-10 pr-10 text-sm transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-600 ${isDarkMode ? "border-slate-700/60 bg-slate-800/50 text-slate-100 placeholder-slate-500" : "border-slate-200 bg-white text-slate-900 placeholder-slate-500 hover:bg-slate-50"}`}
         />
         {query && (
           <button
@@ -106,7 +106,7 @@ export default function SearchBar({ onNavigate }) {
               setQuery('');
               setResults([]);
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+            className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${isDarkMode ? "text-slate-400 hover:text-slate-300" : "text-slate-600 hover:text-slate-900"}`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -115,7 +115,7 @@ export default function SearchBar({ onNavigate }) {
 
       
       {isOpen && query && (
-        <div className="absolute top-full left-0 right-0 mt-2 rounded-lg shadow-xl z-[9999] overflow-hidden bg-slate-900 border border-slate-700 dark:bg-slate-900 dark:border-slate-700 light:bg-white light:border-slate-200">
+        <div className={`absolute top-full left-0 right-0 mt-2 rounded-lg z-[9999] overflow-hidden border ${isDarkMode ? "bg-slate-900 border-slate-700 shadow-xl" : "bg-white border-slate-200 shadow-lg shadow-slate-200/70"}`}>
           {results.length > 0 ? (
             <div className="max-h-96 overflow-y-auto">
               
@@ -125,27 +125,27 @@ export default function SearchBar({ onNavigate }) {
 
                 return (
                   <div key={category}>
-                    <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-800 border-b border-slate-700 dark:bg-slate-800 dark:border-slate-700 light:bg-slate-50 light:text-slate-600 light:border-slate-200">
+                    <div className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b ${isDarkMode ? "text-slate-400 bg-slate-800 border-slate-700" : "text-slate-600 bg-slate-50 border-slate-200"}`}>
                       {t(`search.${category.toLowerCase()}`)}
                     </div>
                     {categoryItems.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => handleSelect(item)}
-                        className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-orange-600/10 transition-colors border-b border-slate-700 last:border-b-0 dark:text-slate-100 dark:hover:bg-orange-600/10 dark:border-slate-700 light:text-slate-900 light:hover:bg-orange-50 light:border-slate-200"
+                        className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors border-b last:border-b-0 ${isDarkMode ? "text-slate-100 hover:bg-orange-600/10 border-slate-700" : "text-slate-900 hover:bg-orange-50 border-slate-200"}`}
                       >
                         <div className="text-orange-500 flex-shrink-0">
                           {getResultIcon(item)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate dark:text-slate-100 light:text-slate-900">
+                          <div className={`text-sm font-medium truncate ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
                             {item.title}
                           </div>
-                          <div className="text-xs mt-0.5 dark:text-slate-400 light:text-slate-600">
+                          <div className={`text-xs mt-0.5 ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
                             {item.category} • {item.page}
                           </div>
                         </div>
-                        <div className="dark:text-slate-500 light:text-slate-400">
+                        <div className={isDarkMode ? "text-slate-500" : "text-slate-400"}>
                           →
                         </div>
                       </button>
@@ -156,11 +156,11 @@ export default function SearchBar({ onNavigate }) {
             </div>
           ) : (
             <div className="px-4 py-8 text-center">
-              <Search className="w-8 h-8 mx-auto mb-2 opacity-50 dark:text-slate-600 light:text-slate-400" />
-              <p className="text-sm dark:text-slate-400 light:text-slate-600">
+              <Search className={`w-8 h-8 mx-auto mb-2 opacity-50 ${isDarkMode ? "text-slate-600" : "text-slate-400"}`} />
+              <p className={`text-sm ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
                 {t('search.noResults')} <span className="text-orange-400 font-semibold">"{query}"</span>
               </p>
-              <p className="text-xs mt-1 dark:text-slate-500 light:text-slate-500">
+              <p className="text-xs mt-1 text-slate-500">
                 {t('search.trySearching')}
               </p>
             </div>

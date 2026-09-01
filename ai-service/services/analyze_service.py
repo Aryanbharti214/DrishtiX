@@ -110,6 +110,10 @@ def normalize_disaster_findings(
 
                 "description": description,
 
+                "confidence": finding.get(
+                    "confidence"
+                ),
+
                 "bbox": finding.get(
                     "bbox"
                 ),
@@ -149,7 +153,7 @@ def normalize_disaster_findings(
     return normalized
 
 
-async def analyze_image(
+async def analyze_floodnet_image(
     image: UploadFile,
     image_id: str,
 ):
@@ -290,3 +294,28 @@ async def analyze_image(
         "segmentationSummary":
             raw_findings,
     }
+
+
+async def analyze_image(
+    image: UploadFile,
+    image_id: str,
+    source_type: str = "DRONE",
+    analysis_mode: str = "SINGLE_IMAGE",
+    before_image: UploadFile | None = None,
+):
+    if source_type == "SATELLITE":
+        from services.satellite_analysis_service import analyze_satellite_image
+
+        return await analyze_satellite_image(
+            image=image,
+            image_id=image_id,
+            result_path=RESULTS_DIR / f"{image_id}_overlay.jpg",
+            before_image=before_image,
+            analysis_mode=analysis_mode,
+        )
+
+    # DRONE and the existing STREET behavior stay on the frozen FloodNet path.
+    return await analyze_floodnet_image(
+        image=image,
+        image_id=image_id,
+    )
